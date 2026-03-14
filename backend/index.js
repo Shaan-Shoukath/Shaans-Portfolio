@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import projectRoutes from './routes/projects.js'
 import adminRoutes from './routes/admin.js'
 import profileRoutes from './routes/profile.js'
+import contentRoutes from './routes/content.js'
 
 dotenv.config()
 
@@ -35,6 +36,7 @@ app.use(express.json())
 app.use('/api/projects', projectRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/profile', profileRoutes)
+app.use('/api/content', contentRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

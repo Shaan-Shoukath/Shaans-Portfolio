@@ -5,6 +5,7 @@ import Terminal from './Terminal'
 import Taskbar from './Taskbar'
 import MatrixRain from './MatrixRain'
 import BootScreen from './BootScreen'
+import ShakeDetector from './ShakeDetector'
 import { executeCommand } from '../commands/commandParser'
 
 export default function Desktop() {
@@ -32,7 +33,7 @@ export default function Desktop() {
     }
   }, [store])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts — Alt+WASD for navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.altKey) {
@@ -48,23 +49,23 @@ export default function Desktop() {
               store.removeTerminal(store.focusedId)
             }
             break
-          case 'h':
-          case 'H':
+          case 'a':
+          case 'A':
             e.preventDefault()
             store.focusDirection('left')
             break
-          case 'l':
-          case 'L':
+          case 'd':
+          case 'D':
             e.preventDefault()
             store.focusDirection('right')
             break
-          case 'k':
-          case 'K':
+          case 'w':
+          case 'W':
             e.preventDefault()
             store.focusDirection('up')
             break
-          case 'j':
-          case 'J':
+          case 's':
+          case 'S':
             e.preventDefault()
             store.focusDirection('down')
             break
@@ -120,6 +121,7 @@ export default function Desktop() {
       )}
 
       <Taskbar />
+      <ShakeDetector />
     </div>
   )
 }

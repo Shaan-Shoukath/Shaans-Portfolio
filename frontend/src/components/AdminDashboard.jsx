@@ -17,6 +17,11 @@ export default function AdminDashboard({ token, onLogout }) {
   const [asciiLoading, setAsciiLoading] = useState(false)
   const [currentAscii, setCurrentAscii] = useState('')
 
+  // Site Content state
+  const [content, setContent] = useState(null)
+  const [contentSaving, setContentSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState('projects')
+
   const api = axios.create({
     baseURL: config.apiUrl,
     headers: { Authorization: `Bearer ${token}` },
@@ -35,15 +40,38 @@ export default function AdminDashboard({ token, onLogout }) {
     try {
       const res = await api.get('/api/profile/ascii')
       setCurrentAscii(res.data.asciiArt || '')
+    } catch (err) { /* no profile yet */ }
+  }
+
+  const fetchContent = async () => {
+    try {
+      const res = await api.get('/api/content')
+      setContent(res.data)
     } catch (err) {
-      // Ignore — no profile yet
+      // Defaults if backend is offline
+      setContent({
+        about: { name: '', tagline: '', education: '', location: '', focus: '' },
+        skills: [{ category: '', items: '' }],
+        contact: { email: '', github: '', linkedin: '' },
+        coffeeUrl: '',
+        resumeUrl: '',
+        resumeLinkedIn: '',
+      })
     }
   }
 
   useEffect(() => {
     fetchProjects()
     fetchCurrentAscii()
+    fetchContent()
   }, [])
+
+  const flash = (msg) => {
+    setMessage(msg)
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  // ── Projects CRUD ──────────────────────────────────
 
   const resetForm = () => {
     setForm({ title: '', description: '', technologies: '', github: '', deployment: '', linkedin: '', image: '' })
@@ -60,16 +88,15 @@ export default function AdminDashboard({ token, onLogout }) {
     try {
       if (editing) {
         await api.put(`/api/projects/${editing}`, data)
-        setMessage('✓ Project updated')
+        flash('✓ Project updated')
       } else {
         await api.post('/api/projects', data)
-        setMessage('✓ Project created')
+        flash('✓ Project created')
       }
       resetForm()
       fetchProjects()
-      setTimeout(() => setMessage(''), 3000)
     } catch (err) {
-      setMessage('Error: ' + (err.response?.data?.message || 'Failed to save'))
+      flash('Error: ' + (err.response?.data?.message || 'Failed to save'))
     }
   }
 
@@ -91,42 +118,92 @@ export default function AdminDashboard({ token, onLogout }) {
     if (!confirm('Delete this project?')) return
     try {
       await api.delete(`/api/projects/${id}`)
-      setMessage('✓ Project deleted')
+      flash('✓ Project deleted')
       fetchProjects()
-      setTimeout(() => setMessage(''), 3000)
     } catch (err) {
-      setMessage('Error deleting project')
+      flash('Error deleting project')
     }
   }
 
-  // ASCII Profile Upload
+  // ── ASCII upload ───────────────────────────────────
+
   const handleAsciiUpload = async () => {
     if (!asciiImage) {
-      setMessage('Please select an image first')
+      flash('Please select an image first')
       return
     }
-
     setAsciiLoading(true)
     const formData = new FormData()
     formData.append('image', asciiImage)
     formData.append('width', asciiWidth.toString())
-
     try {
       const res = await api.post('/api/profile/ascii', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
       })
       setAsciiPreview(res.data.asciiArt)
       setCurrentAscii(res.data.asciiArt)
-      setMessage('✓ Neofetch ASCII profile updated!')
-      setTimeout(() => setMessage(''), 3000)
+      flash('✓ Neofetch ASCII profile updated!')
     } catch (err) {
-      setMessage('Error: ' + (err.response?.data?.message || 'Upload failed'))
+      flash('Error: ' + (err.response?.data?.message || 'Upload failed'))
     }
     setAsciiLoading(false)
   }
+
+  // ── Site Content ───────────────────────────────────
+
+  const updateContent = (path, value) => {
+    setContent(prev => {
+      const copy = JSON.parse(JSON.stringify(prev))
+      const keys = path.split('.')
+      let target = copy
+      for (let i = 0; i < keys.length - 1; i++) {
+        target = target[keys[i]]
+      }
+      target[keys[keys.length - 1]] = value
+      return copy
+    })
+  }
+
+  const addSkill = () => {
+    setContent(prev => ({
+      ...prev,
+      skills: [...prev.skills, { category: '', items: '' }],
+    }))
+  }
+
+  const removeSkill = (idx) => {
+    setContent(prev => ({
+      ...prev,
+      skills: prev.skills.filter((_, i) => i !== idx),
+    }))
+  }
+
+  const updateSkill = (idx, field, value) => {
+    setContent(prev => ({
+      ...prev,
+      skills: prev.skills.map((s, i) => i === idx ? { ...s, [field]: value } : s),
+    }))
+  }
+
+  const saveContent = async () => {
+    setContentSaving(true)
+    try {
+      await api.put('/api/content', content)
+      flash('✓ Site content saved!')
+    } catch (err) {
+      flash('Error: ' + (err.response?.data?.message || 'Save failed'))
+    }
+    setContentSaving(false)
+  }
+
+  // ── Label helper ───────────────────────────────────
+  const Label = ({ children }) => (
+    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>
+      {children}
+    </label>
+  )
+
+  // ── Render ─────────────────────────────────────────
 
   return (
     <div className="admin-container">
@@ -136,20 +213,42 @@ export default function AdminDashboard({ token, onLogout }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
             <h1 style={{ color: 'var(--accent-purple)', fontSize: 22, fontWeight: 600 }}>
-              ⬡ Project Dashboard
+              ⬡ Admin Dashboard
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-              Manage your portfolio projects
+              Manage your portfolio
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="admin-btn success" onClick={() => { resetForm(); setShowForm(true) }}>
-              + New Project
+          <button className="admin-btn danger" onClick={onLogout}>
+            ⏻ Logout
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 0 }}>
+          {[
+            { key: 'projects', label: '◈ Projects', icon: '' },
+            { key: 'content', label: '✎ Site Content', icon: '' },
+            { key: 'ascii', label: '🎨 ASCII Profile', icon: '' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding: '10px 20px',
+                fontSize: 13,
+                fontFamily: 'var(--font-mono)',
+                background: activeTab === tab.key ? 'rgba(139,92,246,0.15)' : 'transparent',
+                border: 'none',
+                borderBottom: activeTab === tab.key ? '2px solid var(--accent-purple)' : '2px solid transparent',
+                color: activeTab === tab.key ? 'var(--accent-purple)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {tab.label}
             </button>
-            <button className="admin-btn danger" onClick={onLogout}>
-              ⏻ Logout
-            </button>
-          </div>
+          ))}
         </div>
 
         {/* Status message */}
@@ -174,193 +273,311 @@ export default function AdminDashboard({ token, onLogout }) {
           )}
         </AnimatePresence>
 
-        {/* ===== ASCII PROFILE SECTION ===== */}
-        <div className="admin-glass" style={{ marginBottom: 24 }}>
-          <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
-            🎨 Neofetch ASCII Profile
-          </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>
-            Upload an image to convert it to ASCII art. This will be displayed when users type <code style={{ color: 'var(--accent-green)' }}>neofetch</code> in the terminal.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            {/* Upload controls */}
-            <div>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Select Image
-              </label>
-              <input
-                className="admin-input"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  setAsciiImage(e.target.files[0])
-                  setAsciiPreview('')
-                }}
-                style={{ padding: '8px' }}
-              />
-
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, marginTop: 12, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Width (characters): {asciiWidth}
-              </label>
-              <input
-                type="range"
-                min="30"
-                max="80"
-                value={asciiWidth}
-                onChange={(e) => setAsciiWidth(parseInt(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--accent-purple)' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
-                <span>30 (small)</span>
-                <span>80 (detailed)</span>
-              </div>
-
-              <button
-                className="admin-btn success"
-                onClick={handleAsciiUpload}
-                disabled={asciiLoading || !asciiImage}
-                style={{ marginTop: 12, width: '100%', opacity: (!asciiImage || asciiLoading) ? 0.5 : 1 }}
-              >
-                {asciiLoading ? '⟳ Converting...' : '⬡ Convert to ASCII'}
+        {/* ═══ PROJECTS TAB ═══ */}
+        {activeTab === 'projects' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+              <button className="admin-btn success" onClick={() => { resetForm(); setShowForm(true) }}>
+                + New Project
               </button>
             </div>
 
-            {/* Preview */}
-            <div>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {asciiPreview ? 'New Preview' : currentAscii ? 'Current ASCII Art' : 'Preview'}
-              </label>
-              <pre style={{
-                background: 'rgba(0,0,0,0.5)',
-                padding: '8px',
-                borderRadius: 8,
-                fontSize: '6px',
-                lineHeight: '7px',
-                overflow: 'auto',
-                maxHeight: '250px',
-                color: 'var(--accent-cyan)',
-                fontFamily: 'var(--font-mono)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                whiteSpace: 'pre',
-              }}>
-                {asciiPreview || currentAscii || '  No ASCII art yet.\n  Upload an image to get started.'}
-              </pre>
+            {/* Form */}
+            <AnimatePresence>
+              {showForm && (
+                <motion.div
+                  className="admin-glass"
+                  style={{ marginBottom: 24 }}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
+                    {editing ? '✎ Edit Project' : '+ New Project'}
+                  </h3>
+                  <form onSubmit={handleSave}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <Label>Title</Label>
+                        <input className="admin-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
+                      </div>
+                      <div>
+                        <Label>Technologies (comma-separated)</Label>
+                        <input className="admin-input" value={form.technologies} onChange={e => setForm({ ...form, technologies: e.target.value })} required />
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <Label>Description</Label>
+                        <textarea className="admin-input" style={{ minHeight: 80, resize: 'vertical' }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required />
+                      </div>
+                      <div>
+                        <Label>GitHub URL</Label>
+                        <input className="admin-input" value={form.github} onChange={e => setForm({ ...form, github: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Deployment URL</Label>
+                        <input className="admin-input" value={form.deployment} onChange={e => setForm({ ...form, deployment: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>LinkedIn URL</Label>
+                        <input className="admin-input" value={form.linkedin} onChange={e => setForm({ ...form, linkedin: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Image URL</Label>
+                        <input className="admin-input" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                      <button className="admin-btn success" type="submit">
+                        {editing ? '✓ Update' : '+ Create'}
+                      </button>
+                      <button className="admin-btn" type="button" onClick={resetForm}>
+                        ✕ Cancel
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Projects table */}
+            <div className="admin-glass">
+              <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
+                ◈ Projects ({projects.length})
+              </h3>
+              {projects.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  No projects yet. Click "New Project" to add one.
+                </p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Technologies</th>
+                        <th>Links</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projects.map((p, i) => (
+                        <tr key={p._id}>
+                          <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
+                          <td style={{ fontWeight: 500 }}>{p.title}</td>
+                          <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                            {p.technologies.slice(0, 3).join(', ')}
+                            {p.technologies.length > 3 && ` +${p.technologies.length - 3}`}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+                              {p.github && <a href={p.github} target="_blank" rel="noopener" style={{ color: 'var(--accent-cyan)' }}>GitHub</a>}
+                              {p.deployment && <a href={p.deployment} target="_blank" rel="noopener" style={{ color: 'var(--accent-green)' }}>Live</a>}
+                              {p.linkedin && <a href={p.linkedin} target="_blank" rel="noopener" style={{ color: 'var(--accent-purple)' }}>LinkedIn</a>}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button className="admin-btn" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => handleEdit(p)}>
+                                ✎ Edit
+                              </button>
+                              <button className="admin-btn danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => handleDelete(p._id)}>
+                                ✕
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ═══ SITE CONTENT TAB ═══ */}
+        {activeTab === 'content' && content && (
+          <>
+            {/* About Section */}
+            <div className="admin-glass" style={{ marginBottom: 24 }}>
+              <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
+                👤 About Me
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div>
+                  <Label>Name</Label>
+                  <input className="admin-input" value={content.about.name} onChange={e => updateContent('about.name', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Location</Label>
+                  <input className="admin-input" value={content.about.location} onChange={e => updateContent('about.location', e.target.value)} />
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <Label>Tagline / Bio</Label>
+                  <textarea className="admin-input" style={{ minHeight: 60, resize: 'vertical' }} value={content.about.tagline} onChange={e => updateContent('about.tagline', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Education</Label>
+                  <input className="admin-input" value={content.about.education} onChange={e => updateContent('about.education', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Focus Areas</Label>
+                  <input className="admin-input" value={content.about.focus} onChange={e => updateContent('about.focus', e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Skills Section */}
+            <div className="admin-glass" style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16 }}>
+                  ⚡ Skills ({content.skills.length})
+                </h3>
+                <button className="admin-btn success" style={{ padding: '4px 12px', fontSize: 12 }} onClick={addSkill}>
+                  + Add Skill
+                </button>
+              </div>
+              {content.skills.map((skill, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: 8, marginBottom: 8, alignItems: 'end' }}>
+                  <div>
+                    {idx === 0 && <Label>Category</Label>}
+                    <input className="admin-input" value={skill.category} onChange={e => updateSkill(idx, 'category', e.target.value)} placeholder="e.g. Frontend" />
+                  </div>
+                  <div>
+                    {idx === 0 && <Label>Items (· separated)</Label>}
+                    <input className="admin-input" value={skill.items} onChange={e => updateSkill(idx, 'items', e.target.value)} placeholder="e.g. React · Vue · Angular" />
+                  </div>
+                  <button className="admin-btn danger" style={{ padding: '6px 10px', fontSize: 12, marginBottom: 2 }} onClick={() => removeSkill(idx)}>✕</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Contact Section */}
+            <div className="admin-glass" style={{ marginBottom: 24 }}>
+              <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
+                📬 Contact
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                <div>
+                  <Label>Email</Label>
+                  <input className="admin-input" value={content.contact.email} onChange={e => updateContent('contact.email', e.target.value)} />
+                </div>
+                <div>
+                  <Label>GitHub URL</Label>
+                  <input className="admin-input" value={content.contact.github} onChange={e => updateContent('contact.github', e.target.value)} />
+                </div>
+                <div>
+                  <Label>LinkedIn URL</Label>
+                  <input className="admin-input" value={content.contact.linkedin} onChange={e => updateContent('contact.linkedin', e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Links Section */}
+            <div className="admin-glass" style={{ marginBottom: 24 }}>
+              <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
+                🔗 Links
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                <div>
+                  <Label>Buy Me a Coffee URL</Label>
+                  <input className="admin-input" value={content.coffeeUrl} onChange={e => updateContent('coffeeUrl', e.target.value)} placeholder="https://buymeacoffee.com/shaan" />
+                </div>
+                <div>
+                  <Label>Resume PDF URL</Label>
+                  <input className="admin-input" value={content.resumeUrl} onChange={e => updateContent('resumeUrl', e.target.value)} placeholder="/resume.pdf" />
+                </div>
+                <div>
+                  <Label>Resume LinkedIn URL</Label>
+                  <input className="admin-input" value={content.resumeLinkedIn} onChange={e => updateContent('resumeLinkedIn', e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <button
+              className="admin-btn success"
+              onClick={saveContent}
+              disabled={contentSaving}
+              style={{ width: '100%', justifyContent: 'center', padding: '14px 20px', fontSize: 14, opacity: contentSaving ? 0.5 : 1 }}
+            >
+              {contentSaving ? '⟳ Saving...' : '✓ Save All Content'}
+            </button>
+          </>
+        )}
+
+        {/* ═══ ASCII PROFILE TAB ═══ */}
+        {activeTab === 'ascii' && (
+          <div className="admin-glass">
+            <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
+              🎨 Neofetch ASCII Profile
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>
+              Upload an image to convert it to ASCII art. This will be displayed when users type <code style={{ color: 'var(--accent-green)' }}>neofetch</code> in the terminal.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+              {/* Upload controls */}
+              <div>
+                <Label>Select Image</Label>
+                <input
+                  className="admin-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    setAsciiImage(e.target.files[0])
+                    setAsciiPreview('')
+                  }}
+                  style={{ padding: '8px' }}
+                />
+
+                <Label style={{ marginTop: 12 }}>Width (characters): {asciiWidth}</Label>
+                <input
+                  type="range"
+                  min="30"
+                  max="80"
+                  value={asciiWidth}
+                  onChange={(e) => setAsciiWidth(parseInt(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--accent-purple)' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
+                  <span>30 (small)</span>
+                  <span>80 (detailed)</span>
+                </div>
+
+                <button
+                  className="admin-btn success"
+                  onClick={handleAsciiUpload}
+                  disabled={asciiLoading || !asciiImage}
+                  style={{ marginTop: 12, width: '100%', opacity: (!asciiImage || asciiLoading) ? 0.5 : 1 }}
+                >
+                  {asciiLoading ? '⟳ Converting...' : '⬡ Convert to ASCII'}
+                </button>
+              </div>
+
+              {/* Preview */}
+              <div>
+                <Label>{asciiPreview ? 'New Preview' : currentAscii ? 'Current ASCII Art' : 'Preview'}</Label>
+                <pre style={{
+                  background: 'rgba(0,0,0,0.5)',
+                  padding: '8px',
+                  borderRadius: 8,
+                  fontSize: '6px',
+                  lineHeight: '7px',
+                  overflow: 'auto',
+                  maxHeight: '250px',
+                  color: 'var(--accent-cyan)',
+                  fontFamily: 'var(--font-mono)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  whiteSpace: 'pre',
+                }}>
+                  {asciiPreview || currentAscii || '  No ASCII art yet.\n  Upload an image to get started.'}
+                </pre>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Form */}
-        <AnimatePresence>
-          {showForm && (
-            <motion.div
-              className="admin-glass"
-              style={{ marginBottom: 24 }}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
-                {editing ? '✎ Edit Project' : '+ New Project'}
-              </h3>
-              <form onSubmit={handleSave}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Title</label>
-                    <input className="admin-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Technologies (comma-separated)</label>
-                    <input className="admin-input" value={form.technologies} onChange={e => setForm({ ...form, technologies: e.target.value })} required />
-                  </div>
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Description</label>
-                    <textarea className="admin-input" style={{ minHeight: 80, resize: 'vertical' }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>GitHub URL</label>
-                    <input className="admin-input" value={form.github} onChange={e => setForm({ ...form, github: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Deployment URL</label>
-                    <input className="admin-input" value={form.deployment} onChange={e => setForm({ ...form, deployment: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>LinkedIn URL</label>
-                    <input className="admin-input" value={form.linkedin} onChange={e => setForm({ ...form, linkedin: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Image URL</label>
-                    <input className="admin-input" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-                  <button className="admin-btn success" type="submit">
-                    {editing ? '✓ Update' : '+ Create'}
-                  </button>
-                  <button className="admin-btn" type="button" onClick={resetForm}>
-                    ✕ Cancel
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Projects table */}
-        <div className="admin-glass">
-          <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
-            ◈ Projects ({projects.length})
-          </h3>
-          {projects.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              No projects yet. Click "New Project" to add one.
-            </p>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Title</th>
-                    <th>Technologies</th>
-                    <th>Links</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((p, i) => (
-                    <tr key={p._id}>
-                      <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                      <td style={{ fontWeight: 500 }}>{p.title}</td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                        {p.technologies.slice(0, 3).join(', ')}
-                        {p.technologies.length > 3 && ` +${p.technologies.length - 3}`}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
-                          {p.github && <a href={p.github} target="_blank" rel="noopener" style={{ color: 'var(--accent-cyan)' }}>GitHub</a>}
-                          {p.deployment && <a href={p.deployment} target="_blank" rel="noopener" style={{ color: 'var(--accent-green)' }}>Live</a>}
-                          {p.linkedin && <a href={p.linkedin} target="_blank" rel="noopener" style={{ color: 'var(--accent-purple)' }}>LinkedIn</a>}
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button className="admin-btn" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => handleEdit(p)}>
-                            ✎ Edit
-                          </button>
-                          <button className="admin-btn danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => handleDelete(p._id)}>
-                            ✕
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )

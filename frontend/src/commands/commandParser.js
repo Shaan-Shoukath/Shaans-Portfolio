@@ -3,6 +3,9 @@ import fallbackProjects from './fallbackProjects'
 import config from '../config'
 
 let cachedProjects = null
+let cachedContent = null
+
+// ── Data fetchers ──────────────────────────────────────────────
 
 async function fetchProjects() {
   try {
@@ -15,9 +18,43 @@ async function fetchProjects() {
   }
 }
 
-function makeLink(url, label) {
-  return { type: 'link', url, label }
+async function fetchContent() {
+  try {
+    const res = await axios.get(`${config.apiUrl}/api/content`)
+    cachedContent = res.data
+    return cachedContent
+  } catch {
+    // Return defaults when backend is offline
+    cachedContent = {
+      about: {
+        name: 'Shaan Shoukath',
+        tagline: 'Full-stack developer & tech enthusiast passionate about building innovative solutions that make a real-world impact.',
+        education: 'Computer Science & Engineering',
+        location: 'India',
+        focus: 'AI/ML, Robotics, Web Development',
+      },
+      skills: [
+        { category: 'Languages', items: 'Python · JavaScript · TypeScript · C++ · Rust' },
+        { category: 'Frontend', items: 'React · Next.js · TailwindCSS · Framer Motion' },
+        { category: 'Backend', items: 'Node.js · Express · FastAPI · Django' },
+        { category: 'Database', items: 'MongoDB · PostgreSQL · Redis · Firebase' },
+        { category: 'DevOps & Tools', items: 'Docker · Git · Linux · Nginx · CI/CD' },
+        { category: 'AI / ML / Robotics', items: 'TensorFlow · PyTorch · OpenCV · ROS2' },
+      ],
+      contact: {
+        email: 'shaan@example.com',
+        github: 'https://github.com/shaan-shoukath',
+        linkedin: 'https://linkedin.com/in/shaan-shoukath',
+      },
+      coffeeUrl: 'https://buymeacoffee.com/shaan',
+      resumeUrl: '/resume.pdf',
+      resumeLinkedIn: 'https://linkedin.com/in/shaan-shoukath',
+    }
+    return cachedContent
+  }
 }
+
+// ── Helpers ─────────────────────────────────────────────────────
 
 function line(text, className = 'output-text') {
   return { type: 'text', text, className }
@@ -26,6 +63,8 @@ function line(text, className = 'output-text') {
 function blank() {
   return line('')
 }
+
+// ── Command dispatcher ─────────────────────────────────────────
 
 export async function executeCommand(cmd, store, termId) {
   const input = cmd.trim()
@@ -38,15 +77,15 @@ export async function executeCommand(cmd, store, termId) {
     case 'help':
       return helpCommand()
     case 'about':
-      return aboutCommand()
+      return await aboutCommand()
     case 'skills':
-      return skillsCommand()
+      return await skillsCommand()
     case 'projects':
       return await projectsCommand()
     case 'resume':
-      return resumeCommand()
+      return await resumeCommand()
     case 'contact':
-      return contactCommand()
+      return await contactCommand()
     case 'clear':
       store.clearTerminal(termId)
       return []
@@ -65,9 +104,7 @@ export async function executeCommand(cmd, store, termId) {
       store.toggleMatrix()
       return [line('  ⟩ Matrix mode toggled.', 'output-success')]
     case 'coffee':
-      return coffeeCommand()
-    case 'hyprland':
-      return hyprlandCommand()
+      return await coffeeCommand()
     default:
       return [
         line(`  zsh: command not found: ${command}`, 'output-error'),
@@ -75,6 +112,8 @@ export async function executeCommand(cmd, store, termId) {
       ]
   }
 }
+
+// ── Commands ────────────────────────────────────────────────────
 
 function helpCommand() {
   return [
@@ -89,72 +128,58 @@ function helpCommand() {
     line('  open <id>   → View project details', 'output-text'),
     line('  resume      → Open resume / CV', 'output-text'),
     line('  contact     → Get in touch', 'output-text'),
+    line('  coffee      → ☕ Buy me a coffee', 'output-text'),
     line('  neofetch    → System information', 'output-text'),
+    line('  matrix      → Toggle matrix rain effect', 'output-text'),
     line('  newterm     → Open new terminal (Alt+Enter)', 'output-text'),
     line('  exit        → Close this terminal (Alt+Q)', 'output-text'),
     line('  clear       → Clear terminal', 'output-text'),
-    line('  matrix      → Toggle matrix rain effect', 'output-text'),
-    line('  coffee      → ☕ A developer essential', 'output-text'),
-    line('  hyprland    → About this desktop environment', 'output-text'),
     line('  sudo <cmd>  → Try your luck...', 'output-muted'),
     blank(),
     line('  ─── Keybindings ───', 'output-muted'),
     line('  Alt+Enter → New terminal    Alt+Q → Close', 'output-muted'),
-    line('  Alt+H/J/K/L → Navigate terminals', 'output-muted'),
+    line('  Alt+W/A/S/D → Navigate terminals', 'output-muted'),
     blank(),
   ]
 }
 
-function aboutCommand() {
+async function aboutCommand() {
+  const content = cachedContent || await fetchContent()
+  const a = content.about
   return [
     blank(),
     line('  ┌─── About Me ───────────────────────────┐', 'output-accent'),
     blank(),
-    line('    👋 Hey, I\'m Shaan Shoukath', 'output-heading'),
+    line(`    👋 Hey, I'm ${a.name}`, 'output-heading'),
     blank(),
-    line('    Full-stack developer & tech enthusiast passionate', 'output-text'),
-    line('    about building innovative solutions that make', 'output-text'),
-    line('    a real-world impact.', 'output-text'),
+    ...a.tagline.match(/.{1,50}(\s|$)/g).map(s => line(`    ${s.trim()}`, 'output-text')),
     blank(),
-    line('    🎓 Education: Computer Science & Engineering', 'output-text'),
-    line('    📍 Location: India', 'output-text'),
-    line('    🔭 Focus: AI/ML, Robotics, Web Development', 'output-text'),
-    blank(),
-    line('    I love exploring the intersection of hardware', 'output-text'),
-    line('    and software — from autonomous drones to', 'output-text'),
-    line('    interactive web experiences like this one.', 'output-text'),
+    line(`    🎓 Education: ${a.education}`, 'output-text'),
+    line(`    📍 Location: ${a.location}`, 'output-text'),
+    line(`    🔭 Focus: ${a.focus}`, 'output-text'),
     blank(),
     line('  └─────────────────────────────────────────┘', 'output-accent'),
     blank(),
   ]
 }
 
-function skillsCommand() {
-  return [
+async function skillsCommand() {
+  const content = cachedContent || await fetchContent()
+  const lines = [
     blank(),
     line('  ┌─── Skills & Technologies ─────────────────┐', 'output-accent'),
     blank(),
-    line('    ▸ Languages', 'output-warning'),
-    line('      Python · JavaScript · TypeScript · C++ · Rust', 'output-text'),
-    blank(),
-    line('    ▸ Frontend', 'output-warning'),
-    line('      React · Next.js · TailwindCSS · Framer Motion', 'output-text'),
-    blank(),
-    line('    ▸ Backend', 'output-warning'),
-    line('      Node.js · Express · FastAPI · Django', 'output-text'),
-    blank(),
-    line('    ▸ Database', 'output-warning'),
-    line('      MongoDB · PostgreSQL · Redis · Firebase', 'output-text'),
-    blank(),
-    line('    ▸ DevOps & Tools', 'output-warning'),
-    line('      Docker · Git · Linux · Nginx · CI/CD', 'output-text'),
-    blank(),
-    line('    ▸ AI / ML / Robotics', 'output-warning'),
-    line('      TensorFlow · PyTorch · OpenCV · ROS2', 'output-text'),
-    blank(),
-    line('  └────────────────────────────────────────────┘', 'output-accent'),
-    blank(),
   ]
+
+  content.skills.forEach(skill => {
+    lines.push(line(`    ▸ ${skill.category}`, 'output-warning'))
+    lines.push(line(`      ${skill.items}`, 'output-text'))
+    lines.push(blank())
+  })
+
+  lines.push(line('  └────────────────────────────────────────────┘', 'output-accent'))
+  lines.push(blank())
+  return lines
 }
 
 async function projectsCommand() {
@@ -211,33 +236,57 @@ async function openCommand(args) {
   return lines
 }
 
-function resumeCommand() {
+async function resumeCommand() {
+  const content = cachedContent || await fetchContent()
   return [
     blank(),
     line('  ┌─── Resume ──────────────────────────────┐', 'output-accent'),
     blank(),
     line('    📄 Resume / CV', 'output-heading'),
     blank(),
-    { type: 'link', text: '    → Download PDF Resume', url: '/resume.pdf', className: 'output-link' },
-    { type: 'link', text: '    → View on LinkedIn', url: 'https://linkedin.com/in/shaan-shoukath', className: 'output-link' },
+    { type: 'link', text: '    → Download PDF Resume', url: content.resumeUrl, className: 'output-link' },
+    { type: 'link', text: '    → View on LinkedIn', url: content.resumeLinkedIn, className: 'output-link' },
     blank(),
     line('  └──────────────────────────────────────────┘', 'output-accent'),
     blank(),
   ]
 }
 
-function contactCommand() {
+async function contactCommand() {
+  const content = cachedContent || await fetchContent()
+  const c = content.contact
   return [
     blank(),
     line('  ┌─── Contact ─────────────────────────────┐', 'output-accent'),
     blank(),
     line('    📬 Let\'s Connect!', 'output-heading'),
     blank(),
-    { type: 'link', text: '    📧 Email: shaan@example.com', url: 'mailto:shaan@example.com', className: 'output-link' },
-    { type: 'link', text: '    🐙 GitHub: github.com/shaan-shoukath', url: 'https://github.com/shaan-shoukath', className: 'output-link' },
-    { type: 'link', text: '    💼 LinkedIn: linkedin.com/in/shaan-shoukath', url: 'https://linkedin.com/in/shaan-shoukath', className: 'output-link' },
+    { type: 'link', text: `    📧 Email: ${c.email}`, url: `mailto:${c.email}`, className: 'output-link' },
+    { type: 'link', text: `    🐙 GitHub: ${c.github}`, url: c.github, className: 'output-link' },
+    { type: 'link', text: `    💼 LinkedIn: ${c.linkedin}`, url: c.linkedin, className: 'output-link' },
     blank(),
     line('  └──────────────────────────────────────────┘', 'output-accent'),
+    blank(),
+  ]
+}
+
+async function coffeeCommand() {
+  const content = cachedContent || await fetchContent()
+  const url = content.coffeeUrl || 'https://buymeacoffee.com/shaan'
+  return [
+    blank(),
+    line('         ( (', 'output-warning'),
+    line('          ) )', 'output-warning'),
+    line('       ........', 'output-warning'),
+    line('       |      |]', 'output-warning'),
+    line('       \\      /', 'output-warning'),
+    line('        `----\'', 'output-warning'),
+    blank(),
+    line('  ☕ Enjoying this portfolio? Buy me a coffee!', 'output-text'),
+    blank(),
+    { type: 'link', text: `    → ${url}`, url, className: 'output-link' },
+    blank(),
+    line('  Current status: Caffeinated ✓', 'output-success'),
     blank(),
   ]
 }
@@ -258,6 +307,7 @@ function newtermCommand(store) {
 
 function sudoCommand(args) {
   const full = args.join(' ').toLowerCase()
+
   if (full === 'hire shaan') {
     return [
       blank(),
@@ -273,53 +323,51 @@ function sudoCommand(args) {
       blank(),
     ]
   }
+
   if (full === 'rm -rf /') {
+    // Rickroll!
     return [
-      line('  ☠️  Nice try! This portfolio is indestructible.', 'output-error'),
-      line('  (But I appreciate the Linux spirit)', 'output-muted'),
+      blank(),
+      line('  ☠️  Initiating system destruction...', 'output-error'),
+      line('  ██████████████████ 100%', 'output-error'),
+      line('  ...', 'output-muted'),
+      line('  Just kidding! 😏', 'output-success'),
+      blank(),
+      { type: 'action', action: 'openUrl', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+      line('  🎵 You\'ve been rickrolled! Never gonna give you up~', 'output-warning'),
+      blank(),
     ]
   }
+
+  if (full === 'play' || full === 'music') {
+    return [
+      blank(),
+      line('  🎵 Opening the vibes...', 'output-success'),
+      blank(),
+      { type: 'action', action: 'openUrl', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
+      line('  ♪ lofi hip hop radio — beats to relax/study to', 'output-muted'),
+      blank(),
+    ]
+  }
+
+  if (full === 'meme' || full === 'memes') {
+    const memes = [
+      { text: '  🤖 "It works on my machine" — Every Developer Ever', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+      { text: '  🔥 "This is fine." — Developer in production', url: 'https://www.youtube.com/watch?v=0oBx7Jg4m-o' },
+      { text: '  💀 "Let me just push to main real quick..."', url: 'https://www.youtube.com/watch?v=y8OnoxKotPQ' },
+    ]
+    const pick = memes[Math.floor(Math.random() * memes.length)]
+    return [
+      blank(),
+      line(pick.text, 'output-warning'),
+      blank(),
+      { type: 'action', action: 'openUrl', url: pick.url },
+      blank(),
+    ]
+  }
+
   return [
     line('  ⚠️  sudo: permission denied', 'output-error'),
-    line('  Hint: try "sudo hire shaan"', 'output-muted'),
-  ]
-}
-
-function coffeeCommand() {
-  return [
-    blank(),
-    line('         ( (', 'output-warning'),
-    line('          ) )', 'output-warning'),
-    line('       ........', 'output-warning'),
-    line('       |      |]', 'output-warning'),
-    line('       \\      /', 'output-warning'),
-    line('        `----\'', 'output-warning'),
-    blank(),
-    line('  ☕ Coffee is the fuel of great code.', 'output-text'),
-    line('  Current status: Caffeinated ✓', 'output-success'),
-    blank(),
-  ]
-}
-
-function hyprlandCommand() {
-  return [
-    blank(),
-    line('  ┌─── Hyprland Terminal Desktop ────────────┐', 'output-accent'),
-    blank(),
-    line('    This portfolio simulates Hyprland, a dynamic', 'output-text'),
-    line('    tiling Wayland compositor for Linux.', 'output-text'),
-    blank(),
-    line('    ▸ Window Manager: Hyprland-style tiling', 'output-warning'),
-    line('    ▸ Terminal: Alacritty-inspired glassmorphism', 'output-warning'),
-    line('    ▸ Max Windows: 4 (desktop) / 1 (mobile)', 'output-warning'),
-    line('    ▸ Animations: Framer Motion layout transitions', 'output-warning'),
-    blank(),
-    line('    Keybindings:', 'output-heading'),
-    line('    Alt+Enter  → New terminal', 'output-text'),
-    line('    Alt+Q      → Close terminal', 'output-text'),
-    line('    Alt+H/J/K/L → Navigate focus', 'output-text'),
-    blank(),
-    line('  └────────────────────────────────────────────┘', 'output-accent'),
-    blank(),
+    line('  Hint: try "sudo hire shaan" or "sudo play"', 'output-muted'),
   ]
 }

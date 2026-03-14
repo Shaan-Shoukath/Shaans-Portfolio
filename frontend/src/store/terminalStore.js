@@ -11,7 +11,7 @@ function getMaxTerminals() {
 const useTerminalStore = create((set, get) => ({
   terminals: [],
   focusedId: null,
-  matrixMode: true,
+  matrixMode: false,
   maxTerminals: getMaxTerminals(),
 
   addTerminal: () => {

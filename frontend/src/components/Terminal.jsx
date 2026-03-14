@@ -94,6 +94,13 @@ export default function Terminal({ terminal }) {
       )
     }
 
+    if (item.type === 'action') {
+      if (item.action === 'openUrl') {
+        window.open(item.url, '_blank')
+      }
+      return null
+    }
+
     return (
       <div className={`terminal-line ${item.className || ''}`} key={i}>
         {item.text}
