@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
+import config from '../config'
 
 // Default fallback ASCII if API has no profile or is offline
 const defaultAscii = [
@@ -31,7 +32,7 @@ export default function Neofetch() {
 
   useEffect(() => {
     // Try to fetch custom ASCII from backend
-    axios.get('/api/profile/ascii')
+    axios.get(`${config.apiUrl}/api/profile/ascii`)
       .then(res => {
         if (res.data.asciiArt && res.data.asciiArt.trim().length > 0) {
           setAscii(res.data.asciiArt)
