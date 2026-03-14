@@ -77,7 +77,12 @@ export default function Desktop() {
   }, [store])
 
   if (booting) {
-    return <BootScreen onComplete={handleBootComplete} />
+    return (
+      <>
+        <MatrixRain />
+        <BootScreen onComplete={handleBootComplete} />
+      </>
+    )
   }
 
   return (

@@ -18,7 +18,7 @@ A developer portfolio that simulates a **Hyprland Linux desktop** with glassmorp
 | 🧊 **Glassmorphism**    | Frosted glass terminals with blur, glow, and translucency                         |
 | ⌨️ **14 Commands**      | help, about, skills, projects, resume, contact, neofetch, matrix, coffee, sudo... |
 | 🚀 **Boot Sequence**    | Staged Linux-style boot animation on first visit                                  |
-| 🟢 **Matrix Rain**      | Toggle canvas-based Katakana character rain                                       |
+| 🟢 **Matrix Rain**      | Always-on canvas-based Katakana character rain                                    |
 | 🔐 **Admin Dashboard**  | Hidden `/admin` panel with JWT auth + project CRUD                                |
 | 📱 **Responsive**       | Optimized for phones, tablets, laptops, desktops, and ultra-wide                  |
 | 🌐 **REST API**         | Express + MongoDB backend with offline fallback                                   |
@@ -28,18 +28,15 @@ A developer portfolio that simulates a **Hyprland Linux desktop** with glassmorp
 ## 🚀 Quick Start
 
 ```bash
-# Install dependencies
-npm install
-cd server && npm install && cd ..
+# Install everything
+npm run install:all
 
-# Run frontend (works without backend)
+# Run both frontend + backend
 npm run dev
 
-# Run backend (requires MongoDB)
-cd server && npm run dev
-
-# Or run both together
-npm run dev:all
+# Or run separately
+npm run dev:frontend    # http://localhost:5173
+npm run dev:backend     # http://localhost:5000
 ```
 
 **Admin login:** `/admin` → username: `admin` / password: `admin123`
@@ -59,45 +56,63 @@ npm run dev:all
 ## 📂 Project Structure
 
 ```
-├── src/                    Frontend (React + Vite)
-│   ├── components/         UI components
-│   ├── commands/           Terminal command system
-│   └── store/              Zustand state management
-├── server/                 Backend (Express + MongoDB)
-│   ├── models/             Mongoose schemas
-│   ├── routes/             API endpoints
-│   ├── controllers/        Business logic
-│   └── middleware/          JWT auth
-└── developers-debug/       📖 Documentation (see below)
+Shaans-Portfolio/
+├── package.json            Root orchestrator (runs both)
+├── README.md               You are here
+├── DEPLOYMENT.md           Free hosting guide
+├── PROJECT_OVERVIEW.md     Architecture overview
+│
+├── frontend/               React + Vite app
+│   ├── src/
+│   │   ├── components/     UI components
+│   │   ├── commands/       Terminal command system
+│   │   └── store/          Zustand state management
+│   ├── developers-debug/   Frontend docs (8 guides)
+│   ├── vite.config.js
+│   └── package.json
+│
+└── backend/                Express + MongoDB API
+    ├── models/             Mongoose schemas
+    ├── routes/             API endpoints
+    ├── controllers/        Business logic
+    ├── middleware/          JWT auth
+    ├── developers-debug/   Backend docs (3 guides)
+    ├── .env                Secrets (not in git)
+    └── package.json
 ```
 
 ---
 
 ## 📖 Developer Documentation
 
-> **New to this codebase?** Start with the [Project Overview](developers-debug/PROJECT_OVERVIEW.md), then read the guides below.
+> **New to this codebase?** Start with the [Project Overview](PROJECT_OVERVIEW.md).
 
-### Comprehensive Guides
+### Frontend Docs (`frontend/developers-debug/`)
 
-| Guide                                                       | What You'll Learn                                                          |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [📗 Project Overview](developers-debug/PROJECT_OVERVIEW.md) | Architecture diagram, folder structure, terminology, how to run            |
-| [🖥️ Frontend Guide](developers-debug/FRONTEND_GUIDE.md)     | React, Vite, Zustand, Framer Motion, TailwindCSS, Axios — with comparisons |
-| [🛠️ Backend Guide](developers-debug/BACKEND_GUIDE.md)       | Express, MongoDB, Mongoose, JWT, CORS, dotenv — with request lifecycle     |
+| Doc                                                                 | What It Covers                                          |
+| ------------------------------------------------------------------- | ------------------------------------------------------- |
+| [Frontend Guide](frontend/developers-debug/FRONTEND_GUIDE.md)       | React, Vite, Zustand, Framer Motion, TailwindCSS, Axios |
+| [Terminal System](frontend/developers-debug/FEATURE_TERMINAL.md)    | Command flow, state, focus management                   |
+| [Tiling WM](frontend/developers-debug/FEATURE_TILING_WM.md)         | Layouts, keybindings, grid CSS                          |
+| [Glassmorphism](frontend/developers-debug/FEATURE_GLASSMORPHISM.md) | Blur, transparency, glow effects                        |
+| [Commands](frontend/developers-debug/FEATURE_COMMANDS.md)           | All 14 commands + how to add new ones                   |
+| [Boot Sequence](frontend/developers-debug/FEATURE_BOOT_SEQUENCE.md) | Boot animation timing + customization                   |
+| [Matrix Rain](frontend/developers-debug/FEATURE_MATRIX_RAIN.md)     | Canvas rendering, characters, z-index                   |
+| [Responsive](frontend/developers-debug/FEATURE_RESPONSIVE.md)       | All breakpoints + device limits                         |
 
-### Feature-Specific Docs
+### Backend Docs (`backend/developers-debug/`)
 
-| Feature                  | Doc                                                                       |
-| ------------------------ | ------------------------------------------------------------------------- |
-| ⌨️ Terminal System       | [FEATURE_TERMINAL.md](developers-debug/FEATURE_TERMINAL.md)               |
-| 🪟 Tiling Window Manager | [FEATURE_TILING_WM.md](developers-debug/FEATURE_TILING_WM.md)             |
-| 🧊 Glassmorphism UI      | [FEATURE_GLASSMORPHISM.md](developers-debug/FEATURE_GLASSMORPHISM.md)     |
-| 💻 Command System        | [FEATURE_COMMANDS.md](developers-debug/FEATURE_COMMANDS.md)               |
-| 🚀 Boot Sequence         | [FEATURE_BOOT_SEQUENCE.md](developers-debug/FEATURE_BOOT_SEQUENCE.md)     |
-| 🟢 Matrix Rain           | [FEATURE_MATRIX_RAIN.md](developers-debug/FEATURE_MATRIX_RAIN.md)         |
-| 🔐 Admin Dashboard       | [FEATURE_ADMIN_DASHBOARD.md](developers-debug/FEATURE_ADMIN_DASHBOARD.md) |
-| 📱 Responsive Design     | [FEATURE_RESPONSIVE.md](developers-debug/FEATURE_RESPONSIVE.md)           |
-| 🔌 Backend API           | [FEATURE_BACKEND_API.md](developers-debug/FEATURE_BACKEND_API.md)         |
+| Doc                                                                    | What It Covers                                |
+| ---------------------------------------------------------------------- | --------------------------------------------- |
+| [Backend Guide](backend/developers-debug/BACKEND_GUIDE.md)             | Express, MongoDB, Mongoose, JWT, CORS, dotenv |
+| [API Reference](backend/developers-debug/FEATURE_BACKEND_API.md)       | All endpoints, schema, middleware pipeline    |
+| [Admin Dashboard](backend/developers-debug/FEATURE_ADMIN_DASHBOARD.md) | Auth flow, CRUD, security                     |
+
+### Deployment
+
+| Doc                               | What It Covers                                |
+| --------------------------------- | --------------------------------------------- |
+| [Deployment Guide](DEPLOYMENT.md) | Free hosting: Vercel + Render + MongoDB Atlas |
 
 ---
 
@@ -128,19 +143,6 @@ PUT    /api/projects/:id   Admin   — Update project
 DELETE /api/projects/:id   Admin   — Delete project
 POST   /api/admin/login    Public  — Get JWT token
 ```
-
----
-
-## 📱 Responsive Breakpoints
-
-| Width       | Device         | Terminals |
-| ----------- | -------------- | --------- |
-| ≤480px      | Phones         | 1         |
-| ≤768px      | Large phones   | 1         |
-| ≤1024px     | Tablets        | 1         |
-| 1025–1366px | Small laptops  | 4         |
-| ≥1367px     | Desktops       | 4         |
-| ≥1600px     | Large monitors | 4         |
 
 ---
 

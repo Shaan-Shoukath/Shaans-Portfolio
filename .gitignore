@@ -8,7 +8,7 @@ dist/
 .env
 .env.local
 .env.production
-server/.env
+backend/.env
 
 # OS files
 .DS_Store
@@ -24,3 +24,5 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+DEPLOYMENT.md

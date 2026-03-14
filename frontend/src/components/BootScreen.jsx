@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+const bootArt = [
+  '  ===  =  =  =====  =====  =  =  =====  ====',
+  '  =    =  =  =   =  =   =  == =  =   =  =   ',
+  '  ===  ====  =====  =====  = ==  =   =  ===  ',
+  '    =  =  =  =   =  =   =  =  =  =   =     = ',
+  '  ===  =  =  =   =  =   =  =  =  =====  ==== ',
+]
+
 const bootLines = [
   { text: '', delay: 200 },
-  { text: '  ▄▄▄▄▄  ▄▄   ▄▄  ▄▄▄▄▄  ▄▄▄▄▄  ▄▄   ▄  ▄▄▄▄▄  ▄▄▄▄▄', delay: 100, className: 'output-accent' },
-  { text: '  █   ▀█ █  █ █  █ █   █  █   █  █  █  █ █   █  █', delay: 50, className: 'output-accent' },
-  { text: '  ▀▀▀▀█  █▄▄█ █▄▄█ █▄▄▄█  █   █  █  ██ █ █   █  ▀▀▀▀█', delay: 50, className: 'output-accent' },
-  { text: '  █▄▄▄█  █  █ █  █ █   █  █   █  █  █ ██ █▄▄▄█  █▄▄▄█', delay: 50, className: 'output-accent' },
-  { text: '', delay: 100 },
+  ...bootArt.map(line => ({ text: '  ' + line, delay: 60, className: 'output-accent' })),
+  { text: '', delay: 150 },
   { text: '  Booting ShaanOS v2.0...', delay: 400 },
   { text: '', delay: 100 },
   { text: '  [  OK  ] Loading kernel modules...', delay: 300 },
@@ -16,9 +21,9 @@ const bootLines = [
   { text: '  [  OK  ] Starting Hyprland compositor...', delay: 200 },
   { text: '  [  OK  ] Loading glassmorphism shaders...', delay: 300 },
   { text: '  [  OK  ] Connecting to project database...', delay: 250 },
-  { text: '  [  OK  ] Starting network services...', delay: 200 },
+  { text: '  [  OK  ] Enabling matrix rain renderer...', delay: 200 },
   { text: '', delay: 100 },
-  { text: '  ✨ System ready. Welcome to ShaanOS.', delay: 400, className: 'output-success' },
+  { text: '  * System ready. Welcome to ShaanOS.', delay: 400, className: 'output-success' },
   { text: '', delay: 200 },
 ]
 
@@ -27,21 +32,22 @@ export default function BootScreen({ onComplete }) {
   const [done, setDone] = useState(false)
 
   useEffect(() => {
-    let timeout
-    let currentLine = 0
+    const timeouts = []
     let totalDelay = 0
 
     bootLines.forEach((line, i) => {
       totalDelay += line.delay
-      setTimeout(() => {
+      const t = setTimeout(() => {
         setVisibleLines(prev => [...prev, line])
         if (i === bootLines.length - 1) {
-          setTimeout(() => setDone(true), 600)
+          const t2 = setTimeout(() => setDone(true), 600)
+          timeouts.push(t2)
         }
       }, totalDelay)
+      timeouts.push(t)
     })
 
-    return () => clearTimeout(timeout)
+    return () => timeouts.forEach(t => clearTimeout(t))
   }, [])
 
   useEffect(() => {

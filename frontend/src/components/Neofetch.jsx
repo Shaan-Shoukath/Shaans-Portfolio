@@ -1,13 +1,26 @@
 import React from 'react'
 
-const ascii = `
-    ████████╗███████╗
-    ╚══██╔══╝██╔════╝
-       ██║   ███████╗
-       ██║   ╚════██║
-       ██║   ███████║
-       ╚═╝   ╚══════╝
-`
+// ASCII portrait using only safe characters (no backslashes or quotes that JS mangles)
+const asciiLines = [
+  '       .:::::::::::.       ',
+  "     .'             '.     ",
+  '    :   .--"""""--.   :    ',
+  '    :  /  o     o  |  :    ',
+  '    :  |    ___    |  :    ',
+  '    :  |   |___|   |  :    ',
+  "    ':  '-..___..-'  :'    ",
+  "     ':     ___     :'     ",
+  '   ___|.   / S |   .|___  ',
+  '  /   | `-.___.-` |   |   ',
+  ' /    |    | |    |    |   ',
+  '/_____|____|_|____|_____|  ',
+  '      |    | |    |        ',
+  '      |____|_|____|        ',
+  "      /    | |    |        ",
+  "     '-----' '-----'      ",
+]
+
+const ascii = asciiLines.join('\n')
 
 const colors = [
   '#ff5f57', '#febc2e', '#28c840', '#06b6d4',
@@ -16,17 +29,18 @@ const colors = [
 
 export default function Neofetch() {
   const info = [
-    { label: 'OS', value: 'ShaanOS 1.0 (Hyprland)' },
+    { label: 'OS', value: 'ShaanOS 2.0 (Hyprland)' },
     { label: 'Host', value: 'Terminal Portfolio v2.0' },
     { label: 'Kernel', value: 'React 19 + Vite 6' },
     { label: 'Shell', value: 'zsh 5.9 (shaan@portfolio)' },
-    { label: 'WM', value: 'Hyprland (Tiling)' },
+    { label: 'WM', value: 'Hyprland (Dynamic Tiling)' },
     { label: 'Terminal', value: 'Alacritty (Glassmorphism)' },
     { label: 'Theme', value: 'Catppuccin Mocha [Dark]' },
     { label: 'Font', value: 'JetBrains Mono 14px' },
     { label: 'CPU', value: 'Caffeine-Powered Brain' },
-    { label: 'Memory', value: '∞ / ∞ GB (unlimited ideas)' },
-    { label: 'Uptime', value: 'Since the first "Hello, World!"' },
+    { label: 'GPU', value: 'Matrix Rain Accelerated' },
+    { label: 'Memory', value: 'Unlimited Ideas' },
+    { label: 'Uptime', value: 'Since first Hello World' },
   ]
 
   return (
