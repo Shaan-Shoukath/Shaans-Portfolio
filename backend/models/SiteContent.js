@@ -40,6 +40,27 @@ const siteContentSchema = new mongoose.Schema({
   resumeUrl: { type: String, default: '/resume.pdf' },
   resumeLinkedIn: { type: String, default: 'https://linkedin.com/in/shaan-shoukath' },
 
+  // Shake easter egg — audio played when phone is shaken
+  shakeAudioUrl: { type: String, default: '' },
+
+  // Hobbies — shown with sudo hobby
+  hobbies: {
+    type: [String],
+    default: [
+      '🎮  Gaming (when I should be coding)',
+      '🤖  Building robots that don\'t work yet',
+      '🎧  Listening to lofi while pretending to be productive',
+      '☕  Drinking way too much coffee',
+      '🚀  Breaking things in production at 2 AM',
+    ],
+  },
+
+  // Sudo meme — audio URL (MP3) played when user types sudo meme
+  memeAudioUrl: { type: String, default: '' },
+
+  // Sudo rm -rf / — YouTube URL opened
+  rickrollUrl: { type: String, default: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+
   updatedAt: { type: Date, default: Date.now },
 })
 

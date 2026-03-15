@@ -1,11 +1,31 @@
 import { useEffect, useRef } from 'react'
+import axios from 'axios'
+import config from '../config'
 
 const SHAKE_THRESHOLD = 30
 const COOLDOWN_MS = 10000 // 10 second cooldown between triggers
 
+let cachedShakeAudioUrl = null
+let audioFetched = false
+
 export default function ShakeDetector() {
   const lastTrigger = useRef(0)
   const lastAccel = useRef({ x: 0, y: 0, z: 0 })
+  const audioRef = useRef(null)
+
+  // Fetch shake audio URL from backend
+  useEffect(() => {
+    if (!audioFetched) {
+      audioFetched = true
+      axios.get(`${config.apiUrl}/api/content`)
+        .then(res => {
+          if (res.data.shakeAudioUrl) {
+            cachedShakeAudioUrl = res.data.shakeAudioUrl
+          }
+        })
+        .catch(() => {})
+    }
+  }, [])
 
   useEffect(() => {
     // Only works on devices with accelerometer (mobile)
@@ -27,15 +47,28 @@ export default function ShakeDetector() {
         const now = Date.now()
         if (now - lastTrigger.current > COOLDOWN_MS) {
           lastTrigger.current = now
-          // Rickroll!
-          window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank')
+
+          if (cachedShakeAudioUrl) {
+            // Play the admin-configured MP3
+            try {
+              if (audioRef.current) {
+                audioRef.current.pause()
+              }
+              audioRef.current = new Audio(cachedShakeAudioUrl)
+              audioRef.current.play().catch(() => {})
+            } catch {
+              // Audio playback failed silently
+            }
+          } else {
+            // Fallback: rickroll if no audio configured
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank')
+          }
         }
       }
     }
 
     // Request permission on iOS 13+
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
-      // Permission will be requested on first user interaction
       const requestOnInteraction = () => {
         DeviceMotionEvent.requestPermission()
           .then(response => {

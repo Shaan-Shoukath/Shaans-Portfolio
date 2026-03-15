@@ -6,7 +6,7 @@ import config from '../config'
 const defaultAscii = [
   '       .:::::::::::.       ',
   "     .'             '.     ",
-  '    :   .--"""""--.   :    ',
+  '    :   .--"""""""--.   :    ',
   '    :  /  o     o  |  :    ',
   '    :  |    ___    |  :    ',
   '    :  |   |___|   |  :    ',
@@ -44,16 +44,16 @@ export default function Neofetch() {
   }, [])
 
   const info = [
-    { label: 'OS', value: 'ShaanOS 2.0 (Hyprland)' },
+    { label: 'OS', value: 'Arch Linux x86_64' },
     { label: 'Host', value: 'Terminal Portfolio v2.0' },
     { label: 'Kernel', value: 'React 19 + Vite 6' },
     { label: 'Shell', value: 'zsh 5.9 (shaan@portfolio)' },
     { label: 'WM', value: 'Hyprland (Dynamic Tiling)' },
-    { label: 'Terminal', value: 'Alacritty (Glassmorphism)' },
+    { label: 'Terminal', value: 'Alacritty' },
     { label: 'Theme', value: 'Catppuccin Mocha [Dark]' },
     { label: 'Font', value: 'JetBrains Mono 14px' },
-    { label: 'CPU', value: 'Caffeine-Powered Brain' },
-    { label: 'GPU', value: 'Matrix Rain Accelerated' },
+    { label: 'CPU', value: 'One brain solving one problem.' },
+    { label: 'GPU', value: '10,000 tiny brains arguing about the same pixel. 🎨' },
     { label: 'Memory', value: 'Unlimited Ideas' },
     { label: 'Uptime', value: 'Since first Hello World' },
   ]

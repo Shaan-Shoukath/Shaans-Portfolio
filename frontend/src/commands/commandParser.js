@@ -99,7 +99,7 @@ export async function executeCommand(cmd, store, termId) {
     case 'open':
       return await openCommand(args)
     case 'sudo':
-      return sudoCommand(args)
+      return await sudoCommand(args)
     case 'matrix':
       store.toggleMatrix()
       return [line('  ⟩ Matrix mode toggled.', 'output-success')]
@@ -200,8 +200,12 @@ async function projectsCommand() {
     lines.push(blank())
   })
 
-  lines.push(line(`  ─── Type 'open <number>' for details ───`, 'output-muted'))
   lines.push(line('  └────────────────────────────────────────┘', 'output-accent'))
+  lines.push(blank())
+  lines.push(line('  ╭─── How to explore ───────────────────────╮', 'output-muted'))
+  lines.push(line(`  │  Type  open <number>  to view full details  │`, 'output-muted'))
+  lines.push(line(`  │  Example:  open 1                          │`, 'output-muted'))
+  lines.push(line('  ╰────────────────────────────────────────────╯', 'output-muted'))
   lines.push(blank())
 
   return lines
@@ -305,8 +309,16 @@ function newtermCommand(store) {
   return [line('  ⟩ New terminal opened.', 'output-success')]
 }
 
-function sudoCommand(args) {
+async function sudoCommand(args) {
   const full = args.join(' ').toLowerCase()
+  if (!full) {
+    return [
+      line('  ⚠️  sudo: missing command', 'output-error'),
+      line('  Hint: try "sudo hire shaan", "sudo meme", "sudo music", "sudo hobby"', 'output-muted'),
+    ]
+  }
+
+  // ── Hardcoded commands ──
 
   if (full === 'hire shaan') {
     return [
@@ -324,22 +336,7 @@ function sudoCommand(args) {
     ]
   }
 
-  if (full === 'rm -rf /') {
-    // Rickroll!
-    return [
-      blank(),
-      line('  ☠️  Initiating system destruction...', 'output-error'),
-      line('  ██████████████████ 100%', 'output-error'),
-      line('  ...', 'output-muted'),
-      line('  Just kidding! 😏', 'output-success'),
-      blank(),
-      { type: 'action', action: 'openUrl', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
-      line('  🎵 You\'ve been rickrolled! Never gonna give you up~', 'output-warning'),
-      blank(),
-    ]
-  }
-
-  if (full === 'play' || full === 'music') {
+  if (full === 'music' || full === 'favourite music' || full === 'play') {
     return [
       blank(),
       line('  🎵 Opening the vibes...', 'output-success'),
@@ -350,24 +347,55 @@ function sudoCommand(args) {
     ]
   }
 
-  if (full === 'meme' || full === 'memes') {
-    const memes = [
-      { text: '  🤖 "It works on my machine" — Every Developer Ever', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
-      { text: '  🔥 "This is fine." — Developer in production', url: 'https://www.youtube.com/watch?v=0oBx7Jg4m-o' },
-      { text: '  💀 "Let me just push to main real quick..."', url: 'https://www.youtube.com/watch?v=y8OnoxKotPQ' },
+  // ── Backend-driven commands ──
+
+  const content = cachedContent || await fetchContent()
+
+  if (full === 'meme' || full === 'favourite meme') {
+    const output = [blank()]
+    if (content.memeAudioUrl) {
+      output.push({ type: 'audio', url: content.memeAudioUrl })
+      output.push(line('  🔊 Playing your favourite meme sound...', 'output-success'))
+    } else {
+      output.push(line('  🤖 "It works on my machine" — Every Developer Ever', 'output-warning'))
+    }
+    output.push(blank())
+    return output
+  }
+
+  if (full === 'hobby' || full === 'favourite hobby' || full === 'hobbies') {
+    const hobbies = content.hobbies || []
+    const output = [
+      blank(),
+      line('  ┌─── Hobbies & Interests ────────────────┐', 'output-accent'),
+      blank(),
     ]
-    const pick = memes[Math.floor(Math.random() * memes.length)]
+    hobbies.forEach(h => {
+      output.push(line(`    ${h}`, 'output-text'))
+    })
+    output.push(blank())
+    output.push(line('  └──────────────────────────────────────────┘', 'output-accent'))
+    output.push(blank())
+    return output
+  }
+
+  if (full === 'rm -rf /') {
+    const rickrollUrl = content.rickrollUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
     return [
       blank(),
-      line(pick.text, 'output-warning'),
+      line('  ☠️  Initiating system destruction...', 'output-error'),
+      line('  ██████████████████ 100%', 'output-error'),
+      line('  ...', 'output-muted'),
+      line('  Just kidding! 😏', 'output-success'),
       blank(),
-      { type: 'action', action: 'openUrl', url: pick.url },
+      { type: 'action', action: 'openUrl', url: rickrollUrl },
+      line('  🎵 You\'ve been rickrolled!', 'output-warning'),
       blank(),
     ]
   }
 
   return [
-    line('  ⚠️  sudo: permission denied', 'output-error'),
-    line('  Hint: try "sudo hire shaan" or "sudo play"', 'output-muted'),
+    line('  ⚠️  sudo: command not found', 'output-error'),
+    line('  Hint: try "sudo hire shaan", "sudo meme", "sudo music", "sudo hobby"', 'output-muted'),
   ]
 }

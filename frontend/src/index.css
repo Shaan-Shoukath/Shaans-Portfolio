@@ -332,6 +332,9 @@ body,
   display: flex;
   gap: 24px;
   align-items: flex-start;
+  max-height: 400px;
+  overflow: hidden;
+  background: transparent;
 }
 
 .neofetch-ascii {
@@ -340,10 +343,17 @@ body,
   font-size: 11px;
   line-height: 1.3;
   flex-shrink: 0;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  border: none;
+  max-width: 45%;
+  overflow: hidden;
 }
 
 .neofetch-info {
   flex: 1;
+  min-width: 0;
 }
 .neofetch-info .info-line {
   line-height: 1.8;
@@ -596,7 +606,9 @@ body,
 /* ===== RESPONSIVE — Comprehensive Device Optimization ===== */
 
 /* --- Safe area + viewport fix for mobile browsers --- */
-html, body, #root {
+html,
+body,
+#root {
   height: 100dvh; /* dynamic viewport height for mobile Safari */
 }
 .desktop {
@@ -625,7 +637,7 @@ html, body, #root {
   }
 
   /* Only show the first terminal, hide rest on small screens */
-  .glass-terminal:nth-child(n+2) {
+  .glass-terminal:nth-child(n + 2) {
     display: none;
   }
 
@@ -1018,4 +1030,3 @@ html, body, #root {
     line-height: 1.4;
   }
 }
-

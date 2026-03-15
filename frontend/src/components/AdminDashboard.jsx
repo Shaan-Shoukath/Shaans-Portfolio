@@ -495,6 +495,60 @@ export default function AdminDashboard({ token, onLogout }) {
               </div>
             </div>
 
+            {/* Hobbies Section */}
+            <div className="admin-glass" style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16 }}>
+                  🎮 Hobbies ({(content.hobbies || []).length})
+                </h3>
+                <button className="admin-btn success" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => {
+                  setContent(prev => ({ ...prev, hobbies: [...(prev.hobbies || []), ''] }))
+                }}>
+                  + Add Hobby
+                </button>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+                Shown when users type <code style={{ color: 'var(--accent-green)' }}>sudo hobby</code>. Include emojis for flair!
+              </p>
+              {(content.hobbies || []).map((hobby, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <input className="admin-input" value={hobby} onChange={e => {
+                    setContent(prev => ({
+                      ...prev,
+                      hobbies: prev.hobbies.map((h, i) => i === idx ? e.target.value : h),
+                    }))
+                  }} placeholder="🎮  Gaming (when I should be coding)" />
+                  <button className="admin-btn danger" style={{ padding: '6px 10px', fontSize: 12, flexShrink: 0 }} onClick={() => {
+                    setContent(prev => ({ ...prev, hobbies: prev.hobbies.filter((_, i) => i !== idx) }))
+                  }}>✕</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Easter Eggs Section */}
+            <div className="admin-glass" style={{ marginBottom: 24 }}>
+              <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
+                🥚 Easter Eggs
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <Label>Meme Audio URL (sudo meme)</Label>
+                  <input className="admin-input" value={content.memeAudioUrl || ''} onChange={e => updateContent('memeAudioUrl', e.target.value)} placeholder="https://example.com/meme.mp3" />
+                  <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>MP3 played when user types sudo meme</p>
+                </div>
+                <div>
+                  <Label>Rickroll URL (sudo rm -rf /)</Label>
+                  <input className="admin-input" value={content.rickrollUrl || ''} onChange={e => updateContent('rickrollUrl', e.target.value)} placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" />
+                  <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>YouTube link opened on sudo rm -rf /</p>
+                </div>
+              </div>
+              <div>
+                <Label>Phone Shake Audio URL (MP3)</Label>
+                <input className="admin-input" value={content.shakeAudioUrl || ''} onChange={e => updateContent('shakeAudioUrl', e.target.value)} placeholder="https://example.com/secret.mp3" />
+                <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>Plays when user shakes phone harshly. Leave empty for rickroll fallback.</p>
+              </div>
+            </div>
+
             {/* Save Button */}
             <button
               className="admin-btn success"

@@ -4,6 +4,10 @@ import useTerminalStore from '../store/terminalStore'
 import { executeCommand } from '../commands/commandParser'
 import Neofetch from './Neofetch'
 
+// Track which action items have already been executed so we don't re-run on re-render
+const executedActions = new Set()
+let actionCounter = 0
+
 export default function Terminal({ terminal }) {
   const [input, setInput] = useState('')
   const inputRef = useRef(null)
@@ -37,8 +41,15 @@ export default function Terminal({ terminal }) {
     if (cmd) {
       store.addCommandToHistory(terminal.id, cmd)
       const output = await executeCommand(cmd, store, terminal.id)
-      if (output.length > 0) {
-        store.addOutput(terminal.id, output)
+      // Tag action items with unique IDs so we can track execution
+      const taggedOutput = output.map(item => {
+        if (item && (item.type === 'action' || item.type === 'audio')) {
+          return { ...item, _actionId: ++actionCounter }
+        }
+        return item
+      })
+      if (taggedOutput.length > 0) {
+        store.addOutput(terminal.id, taggedOutput)
       }
     }
 
@@ -61,6 +72,8 @@ export default function Terminal({ terminal }) {
   const handleClose = () => store.removeTerminal(terminal.id)
 
   const renderLine = (item, i) => {
+    if (!item) return null
+
     if (item.type === 'prompt') {
       return (
         <div className="terminal-line" key={i}>
@@ -95,8 +108,24 @@ export default function Terminal({ terminal }) {
     }
 
     if (item.type === 'action') {
-      if (item.action === 'openUrl') {
-        window.open(item.url, '_blank')
+      // Execute action only once, not on every re-render
+      if (item._actionId && !executedActions.has(item._actionId)) {
+        executedActions.add(item._actionId)
+        if (item.action === 'openUrl') {
+          setTimeout(() => window.open(item.url, '_blank'), 100)
+        }
+      }
+      return null
+    }
+
+    if (item.type === 'audio') {
+      // Play audio only once
+      if (item._actionId && !executedActions.has(item._actionId)) {
+        executedActions.add(item._actionId)
+        try {
+          const audio = new Audio(item.url)
+          audio.play().catch(() => {})
+        } catch { /* ignore */ }
       }
       return null
     }
@@ -145,7 +174,7 @@ export default function Terminal({ terminal }) {
           <span className="prompt-host">portfolio</span>
           <span className="prompt-path"> ~</span>
           <span className="prompt-symbol"> $ </span>
-          <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex' }}>
+          <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
             <input
               ref={inputRef}
               className="input-field"
@@ -156,8 +185,8 @@ export default function Terminal({ terminal }) {
               spellCheck={false}
               autoComplete="off"
             />
+            {isFocused && <span className="cursor-blink" />}
           </form>
-          {isFocused && <span className="cursor-blink" />}
         </div>
       </div>
     </motion.div>

@@ -2,28 +2,36 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const bootArt = [
-  '  ===  =  =  =====  =====  =  =  =====  ====',
-  '  =    =  =  =   =  =   =  == =  =   =  =   ',
-  '  ===  ====  =====  =====  = ==  =   =  ===  ',
-  '    =  =  =  =   =  =   =  =  =  =   =     = ',
-  '  ===  =  =  =   =  =   =  =  =  =====  ==== ',
+  ' _____ __               __              ',
+  '/   _//  |             /  |             ',
+  '\\  \\ |  |__   ______ |  |__   ______  ',
+  ' \\  \\| |  \\ /  __  \\| |  \\ /  __  \\ ',
+  ' _\\  \\| |  || |  |  || |  || |  \\  |',
+  '/  \\__| |  || |__|  || |  || |  |  |  ',
+  '\\______/|__/ \\______||__/  |_|  |__|  ',
+  '  ____                                  ',
+  ' / ___| _ __   __ _  ___ ___  ___      ',
+  ' \\___ \\| \'_ \\ / _` |/ __/ _ \\/ __|  ',
+  '  ___) | |_) | (_| | (_|  __/\\__ \\    ',
+  ' |____/| .__/ \\__,_|\\___\\___||___/   ',
+  '       |_|                              ',
 ]
 
 const bootLines = [
   { text: '', delay: 200 },
-  ...bootArt.map(line => ({ text: '  ' + line, delay: 60, className: 'output-accent' })),
+  ...bootArt.map(line => ({ text: '  ' + line, delay: 45, className: 'output-accent' })),
   { text: '', delay: 150 },
-  { text: '  Booting ShaanOS v2.0...', delay: 400 },
+  { text: '  Booting Arch Linux...', delay: 400 },
   { text: '', delay: 100 },
   { text: '  [  OK  ] Loading kernel modules...', delay: 300 },
   { text: '  [  OK  ] Initializing terminal subsystem...', delay: 250 },
   { text: '  [  OK  ] Mounting portfolio filesystem...', delay: 350 },
-  { text: '  [  OK  ] Starting Hyprland compositor...', delay: 200 },
+  { text: '  [  OK  ] Starting window compositor...', delay: 200 },
   { text: '  [  OK  ] Loading glassmorphism shaders...', delay: 300 },
   { text: '  [  OK  ] Connecting to project database...', delay: 250 },
-  { text: '  [  OK  ] Enabling matrix rain renderer...', delay: 200 },
+  { text: '  [  OK  ] Enabling terminal renderer...', delay: 200 },
   { text: '', delay: 100 },
-  { text: '  * System ready. Welcome to ShaanOS.', delay: 400, className: 'output-success' },
+  { text: '  * System ready. Welcome to Arch Linux.', delay: 400, className: 'output-success' },
   { text: '', delay: 200 },
 ]
 

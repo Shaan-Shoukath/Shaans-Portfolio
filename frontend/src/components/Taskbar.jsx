@@ -24,7 +24,7 @@ export default function Taskbar() {
   return (
     <div className="taskbar">
       <div className="taskbar-left">
-        <span style={{ color: 'var(--accent-purple)', fontWeight: 600 }}>⬡ ShaanOS</span>
+        <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>  Arch Linux</span>
         <span style={{ color: 'var(--text-muted)' }}>
           {terminals.length} terminal{terminals.length !== 1 ? 's' : ''}
         </span>
@@ -41,7 +41,7 @@ export default function Taskbar() {
         ))}
       </div>
       <div className="taskbar-right">
-        <span>⌨ hyprland</span>
+        <span>⌨ tiling</span>
         <span style={{ color: 'var(--accent-cyan)' }}>{time}</span>
       </div>
     </div>
