@@ -318,13 +318,12 @@ body,
 }
 .output-link {
   color: var(--accent-cyan);
-  text-decoration: underline;
-  text-decoration-color: rgba(6, 182, 212, 0.3);
+  text-decoration: none;
   cursor: pointer;
-  transition: text-decoration-color 0.2s;
+  transition: opacity 0.2s;
 }
 .output-link:hover {
-  text-decoration-color: var(--accent-cyan);
+  opacity: 0.8;
 }
 
 /* Neofetch */
@@ -439,15 +438,17 @@ body,
 .boot-screen {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.95);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: flex-start;
   padding: 10% 15%;
   font-size: 14px;
   line-height: 1.8;
   color: var(--accent-green);
+  overflow: hidden;
 }
 
 .boot-line {

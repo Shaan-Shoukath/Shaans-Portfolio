@@ -530,22 +530,90 @@ export default function AdminDashboard({ token, onLogout }) {
               <h3 style={{ color: 'var(--accent-cyan)', fontSize: 16, marginBottom: 16 }}>
                 🥚 Easter Eggs
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div>
-                  <Label>Meme Audio URL (sudo meme)</Label>
-                  <input className="admin-input" value={content.memeAudioUrl || ''} onChange={e => updateContent('memeAudioUrl', e.target.value)} placeholder="https://example.com/meme.mp3" />
-                  <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>MP3 played when user types sudo meme</p>
-                </div>
-                <div>
-                  <Label>Rickroll URL (sudo rm -rf /)</Label>
-                  <input className="admin-input" value={content.rickrollUrl || ''} onChange={e => updateContent('rickrollUrl', e.target.value)} placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" />
-                  <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>YouTube link opened on sudo rm -rf /</p>
+
+              {/* Meme Audio Upload */}
+              <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 16, marginBottom: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <Label>🔊 Meme Audio (sudo meme)</Label>
+                <p style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 8 }}>Upload an MP3 that plays when user types sudo meme</p>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input type="file" accept="audio/*" id="meme-audio-upload" style={{ display: 'none' }} onChange={async (e) => {
+                    const file = e.target.files[0]
+                    if (!file) return
+                    const formData = new FormData()
+                    formData.append('audio', file)
+                    try {
+                      setMessage('Uploading meme audio...')
+                      await api.post('/api/content/audio/meme', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                      setMessage('✓ Meme audio uploaded!')
+                      const res = await api.get('/api/content')
+                      setContent(res.data)
+                    } catch (err) {
+                      setMessage('Error: ' + (err.response?.data?.message || err.message))
+                    }
+                  }} />
+                  <button className="admin-btn" style={{ padding: '6px 14px', fontSize: 12 }} onClick={() => document.getElementById('meme-audio-upload').click()}>
+                    📁 Upload MP3
+                  </button>
+                  {content.memeAudioUrl && (
+                    <>
+                      <button className="admin-btn" style={{ padding: '6px 14px', fontSize: 12 }} onClick={() => {
+                        const a = new Audio(content.memeAudioUrl); a.play().catch(() => {})
+                      }}>▶ Preview</button>
+                      <button className="admin-btn danger" style={{ padding: '6px 14px', fontSize: 12 }} onClick={async () => {
+                        await api.delete('/api/content/audio/meme')
+                        setContent(prev => ({ ...prev, memeAudioUrl: '' }))
+                        setMessage('Meme audio removed')
+                      }}>✕ Remove</button>
+                      <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>✓ Audio uploaded</span>
+                    </>
+                  )}
                 </div>
               </div>
-              <div>
-                <Label>Phone Shake Audio URL (MP3)</Label>
-                <input className="admin-input" value={content.shakeAudioUrl || ''} onChange={e => updateContent('shakeAudioUrl', e.target.value)} placeholder="https://example.com/secret.mp3" />
-                <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>Plays when user shakes phone harshly. Leave empty for rickroll fallback.</p>
+
+              {/* Shake Audio Upload */}
+              <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 16, marginBottom: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <Label>📱 Shake Audio (phone shake)</Label>
+                <p style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 8 }}>Upload an MP3 that plays when user shakes their phone aggressively (3+ times). Leave empty for rickroll redirect.</p>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input type="file" accept="audio/*" id="shake-audio-upload" style={{ display: 'none' }} onChange={async (e) => {
+                    const file = e.target.files[0]
+                    if (!file) return
+                    const formData = new FormData()
+                    formData.append('audio', file)
+                    try {
+                      setMessage('Uploading shake audio...')
+                      await api.post('/api/content/audio/shake', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                      setMessage('✓ Shake audio uploaded!')
+                      const res = await api.get('/api/content')
+                      setContent(res.data)
+                    } catch (err) {
+                      setMessage('Error: ' + (err.response?.data?.message || err.message))
+                    }
+                  }} />
+                  <button className="admin-btn" style={{ padding: '6px 14px', fontSize: 12 }} onClick={() => document.getElementById('shake-audio-upload').click()}>
+                    📁 Upload MP3
+                  </button>
+                  {content.shakeAudioUrl && (
+                    <>
+                      <button className="admin-btn" style={{ padding: '6px 14px', fontSize: 12 }} onClick={() => {
+                        const a = new Audio(content.shakeAudioUrl); a.play().catch(() => {})
+                      }}>▶ Preview</button>
+                      <button className="admin-btn danger" style={{ padding: '6px 14px', fontSize: 12 }} onClick={async () => {
+                        await api.delete('/api/content/audio/shake')
+                        setContent(prev => ({ ...prev, shakeAudioUrl: '' }))
+                        setMessage('Shake audio removed')
+                      }}>✕ Remove</button>
+                      <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>✓ Audio uploaded</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Rickroll URL */}
+              <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 16, marginBottom: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <Label>🎵 Rickroll URL (sudo rm -rf /)</Label>
+                <input className="admin-input" value={content.rickrollUrl || ''} onChange={e => updateContent('rickrollUrl', e.target.value)} placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" />
+                <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>YouTube link user gets redirected to on sudo rm -rf /</p>
               </div>
             </div>
 
