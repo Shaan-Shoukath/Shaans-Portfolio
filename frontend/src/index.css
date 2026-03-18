@@ -337,39 +337,44 @@ body,
   max-width: 100%;
 }
 
-/* Neofetch */
+/* Neofetch — always column layout so ASCII art is never width-starved */
 .neofetch-container {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 10px;
   align-items: flex-start;
-  overflow: hidden;
+  overflow: visible;
   background: transparent;
 }
 
 .neofetch-ascii {
   color: var(--accent-cyan);
   white-space: pre;
-  font-size: 11px;
-  line-height: 1.3;
-  flex-shrink: 1;
-  flex-basis: auto;
+  /* Scale font to terminal width — always show entire art */
+  font-size: clamp(4px, 2.2cqi, 11px);
+  line-height: 1.2;
+  flex-shrink: 0;
   background: transparent;
   margin: 0;
   padding: 0;
   border: none;
-  max-width: 45%;
+  width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .neofetch-info {
   flex: 1;
   min-width: 0;
+  width: 100%;
 }
 .neofetch-info .info-line {
-  line-height: 1.8;
+  font-size: clamp(10px, 1.8cqi, 14px);
+  line-height: 1.7;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .neofetch-info .info-label {
   color: var(--accent-purple);
@@ -390,20 +395,31 @@ body,
   display: inline-block;
 }
 
-/* Neofetch — adapt to terminal container width */
-@container terminal (max-width: 500px) {
+/* Neofetch — wide terminals: side-by-side layout */
+@container terminal (min-width: 700px) {
   .neofetch-container {
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    gap: 16px;
+    align-items: flex-start;
   }
   .neofetch-ascii {
-    font-size: 7px;
-    line-height: 1.15;
-    max-width: 100%;
+    flex-shrink: 1;
+    width: auto;
+    max-width: 50%;
+    font-size: clamp(5px, 1.4cqi, 11px);
+  }
+}
+
+/* Neofetch — narrow terminals: compact sizing */
+@container terminal (max-width: 400px) {
+  .neofetch-ascii {
+    font-size: clamp(3px, 1.6cqi, 7px);
+    line-height: 1.1;
   }
   .neofetch-info .info-line {
-    font-size: 12px;
+    font-size: clamp(9px, 2.2cqi, 12px);
     line-height: 1.5;
+    white-space: normal;
     word-break: break-word;
   }
   .neofetch-colors span {
@@ -412,14 +428,15 @@ body,
   }
 }
 
-@container terminal (max-width: 350px) {
+/* Neofetch — very narrow terminals */
+@container terminal (max-width: 250px) {
   .neofetch-ascii {
-    font-size: 5px;
+    font-size: clamp(2px, 1.2cqi, 5px);
     line-height: 1.05;
   }
   .neofetch-info .info-line {
-    font-size: 11px;
-    line-height: 1.4;
+    font-size: 9px;
+    line-height: 1.3;
   }
 }
 
@@ -719,14 +736,6 @@ body,
     font-size: 11px;
   }
 
-  .neofetch-container {
-    gap: 16px;
-  }
-
-  .neofetch-ascii {
-    font-size: 9px;
-  }
-
   .taskbar {
     height: 36px;
     font-size: 11px;
@@ -788,25 +797,6 @@ body,
   .cursor-blink {
     width: 7px;
     height: 16px;
-  }
-
-  .neofetch-container {
-    flex-direction: column;
-    gap: 12px;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .neofetch-ascii {
-    font-size: 8px;
-    line-height: 1.2;
-    max-width: 100%;
-  }
-
-  .neofetch-info .info-line {
-    line-height: 1.6;
-    font-size: 12px;
-    word-break: break-word;
   }
 
   .taskbar {
@@ -888,23 +878,6 @@ body,
   .cursor-blink {
     width: 6px;
     height: 14px;
-  }
-
-  .neofetch-ascii {
-    font-size: 6px;
-    line-height: 1.1;
-    max-width: 100%;
-  }
-
-  .neofetch-info .info-line {
-    font-size: 11px;
-    line-height: 1.5;
-    word-break: break-word;
-  }
-
-  .neofetch-colors span {
-    width: 12px;
-    height: 12px;
   }
 
   .taskbar {
