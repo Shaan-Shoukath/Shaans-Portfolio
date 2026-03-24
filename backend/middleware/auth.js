@@ -7,8 +7,14 @@ export default function authMiddleware(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1]
+  const jwtSecret = process.env.JWT_SECRET
+
+  if (!jwtSecret) {
+    return res.status(500).json({ message: 'Authentication is not configured on the server' })
+  }
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, jwtSecret)
     req.admin = decoded
     next()
   } catch {

@@ -30,6 +30,10 @@ const projectSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  sortOrder: {
+    type: Number,
+    index: true,
+  },
 }, {
   timestamps: true,
 })

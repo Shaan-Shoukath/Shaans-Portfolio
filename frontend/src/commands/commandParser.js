@@ -56,7 +56,9 @@ async function fetchContent() {
 
 // ── Helpers ─────────────────────────────────────────────────────
 
-const BOX_W = 42 // inner character count between corners
+const BOX_W = 42 // default inner character count between corners
+const MIN_BOX_W = 22
+const MAX_BOX_W = 72
 
 function line(text, className = 'output-text') {
   return { type: 'text', text, className }
@@ -76,61 +78,140 @@ function displayWidth(str) {
   }
   return w
 }
+
+function getBoxWidth(maxColumns) {
+  if (!Number.isFinite(maxColumns)) return BOX_W
+  return Math.max(MIN_BOX_W, Math.min(MAX_BOX_W, Math.floor(maxColumns) - 6))
+}
+
 function pad(content, width = BOX_W, ch = ' ') {
   return content + ch.repeat(Math.max(0, width - displayWidth(content)))
 }
 
+function truncateToWidth(text, maxWidth) {
+  if (displayWidth(text) <= maxWidth) return text
+  const ellipsis = '...'
+  let truncated = ''
+  for (const ch of text) {
+    if (displayWidth(truncated + ch + ellipsis) > maxWidth) break
+    truncated += ch
+  }
+  return `${truncated}${ellipsis}`
+}
+
+function takeWrappedChunk(text, maxWidth) {
+  let chunk = ''
+  let consumedIndex = 0
+  let lastBreakChunk = ''
+  let lastBreakIndex = -1
+
+  for (let i = 0; i < text.length;) {
+    const codePoint = text.codePointAt(i)
+    const ch = String.fromCodePoint(codePoint)
+    const nextIndex = i + ch.length
+
+    if (displayWidth(chunk + ch) > maxWidth) break
+
+    chunk += ch
+    consumedIndex = nextIndex
+
+    if (/\s/.test(ch)) {
+      lastBreakChunk = chunk.trimEnd()
+      lastBreakIndex = nextIndex
+    }
+
+    i = nextIndex
+  }
+
+  if (!chunk) {
+    const firstCodePoint = text.codePointAt(0)
+    const firstChar = String.fromCodePoint(firstCodePoint)
+    return {
+      chunk: firstChar,
+      rest: text.slice(firstChar.length).trimStart(),
+    }
+  }
+
+  if (consumedIndex < text.length && lastBreakIndex > -1) {
+    return {
+      chunk: lastBreakChunk,
+      rest: text.slice(lastBreakIndex).trimStart(),
+    }
+  }
+
+  return {
+    chunk: chunk.trimEnd(),
+    rest: text.slice(consumedIndex).trimStart(),
+  }
+}
+
+function wrapContentLines(text, width, prefix = '', nextPrefix = prefix) {
+  const lines = []
+  let remaining = text.trim()
+  let currentPrefix = prefix
+
+  while (remaining) {
+    const availableWidth = Math.max(1, width - displayWidth(currentPrefix))
+    const { chunk, rest } = takeWrappedChunk(remaining, availableWidth)
+    lines.push(`${currentPrefix}${chunk}`)
+    remaining = rest
+    currentPrefix = nextPrefix
+  }
+
+  return lines.length > 0 ? lines : [prefix]
+}
+
 // ── Box drawing generators (guarantees matched top/bottom) ──────
 
-function boxTop(title) {
+function boxTop(title, width = BOX_W) {
   const label = `─── ${title} `
-  return { type: 'text', text: `  ┌${label}${'─'.repeat(BOX_W - label.length)}┐`, className: 'output-accent output-border' }
+  return { type: 'text', text: `  ┌${label}${'─'.repeat(Math.max(0, width - displayWidth(label)))}┐`, className: 'output-accent output-border' }
 }
-function boxBottom() {
-  return { type: 'text', text: `  └${'─'.repeat(BOX_W)}┘`, className: 'output-accent output-border' }
+function boxBottom(width = BOX_W) {
+  return { type: 'text', text: `  └${'─'.repeat(width)}┘`, className: 'output-accent output-border' }
 }
-function dblBoxTop() {
-  return { type: 'text', text: `  ╔${'═'.repeat(BOX_W)}╗`, className: 'output-accent output-border' }
+function dblBoxTop(width = BOX_W) {
+  return { type: 'text', text: `  ╔${'═'.repeat(width)}╗`, className: 'output-accent output-border' }
 }
-function dblBoxBottom() {
-  return { type: 'text', text: `  ╚${'═'.repeat(BOX_W)}╝`, className: 'output-accent output-border' }
+function dblBoxBottom(width = BOX_W) {
+  return { type: 'text', text: `  ╚${'═'.repeat(width)}╝`, className: 'output-accent output-border' }
 }
-function dblBoxRow(content, p = ' ') {
-  return { type: 'text', text: `  ║${pad(content)}║`, className: 'output-accent output-border' }
+function dblBoxRow(content, p = ' ', width = BOX_W) {
+  return { type: 'text', text: `  ║${pad(content, width)}║`, className: 'output-accent output-border' }
 }
-function divider(title, cls = 'output-muted output-border') {
+function divider(title, cls = 'output-muted output-border', width = BOX_W) {
   const label = `─── ${title} `
-  return { type: 'text', text: `  ${label}${'─'.repeat(BOX_W - label.length + 2)}`, className: cls }
+  return { type: 'text', text: `  ${label}${'─'.repeat(Math.max(0, width - displayWidth(label) + 2))}`, className: cls }
 }
-function boxRow(content, cls = 'output-text') {
-  return line(`  │${pad(content)}│`, `${cls} output-border`)
+function boxRow(content, cls = 'output-text', width = BOX_W) {
+  return line(`  │${pad(content, width)}│`, `${cls} output-border`)
 }
-function boxLink(content, url) {
-  return { type: 'link', text: `  │${pad(content)}│`, url, className: 'output-link output-border' }
+function boxLink(content, url, width = BOX_W) {
+  return { type: 'link', text: `  │${pad(content, width)}│`, url, className: 'output-link output-border' }
 }
-function roundBoxTop(title) {
+function roundBoxTop(title, width = BOX_W) {
   const label = `─── ${title} `
-  return { type: 'text', text: `  ╭${label}${'─'.repeat(BOX_W - label.length)}╮`, className: 'output-muted output-border' }
+  return { type: 'text', text: `  ╭${label}${'─'.repeat(Math.max(0, width - displayWidth(label)))}╮`, className: 'output-muted output-border' }
 }
-function roundBoxBottom() {
-  return { type: 'text', text: `  ╰${'─'.repeat(BOX_W)}╯`, className: 'output-muted output-border' }
+function roundBoxBottom(width = BOX_W) {
+  return { type: 'text', text: `  ╰${'─'.repeat(width)}╯`, className: 'output-muted output-border' }
 }
-function roundBoxRow(content) {
-  return line(`  │${pad(content)}│`, 'output-muted')
+function roundBoxRow(content, width = BOX_W) {
+  return line(`  │${pad(content, width)}│`, 'output-muted output-border')
 }
-function dblBoxTopSuccess() {
-  return { type: 'text', text: `  ╔${'═'.repeat(BOX_W)}╗`, className: 'output-success output-border' }
+function dblBoxTopSuccess(width = BOX_W) {
+  return { type: 'text', text: `  ╔${'═'.repeat(width)}╗`, className: 'output-success output-border' }
 }
-function dblBoxBottomSuccess() {
-  return { type: 'text', text: `  ╚${'═'.repeat(BOX_W)}╝`, className: 'output-success output-border' }
+function dblBoxBottomSuccess(width = BOX_W) {
+  return { type: 'text', text: `  ╚${'═'.repeat(width)}╝`, className: 'output-success output-border' }
 }
-function dblBoxRowSuccess(content, p = ' ') {
-  return { type: 'text', text: `  ║${pad(content)}║`, className: 'output-success output-border' }
+function dblBoxRowSuccess(content, p = ' ', width = BOX_W) {
+  return { type: 'text', text: `  ║${pad(content, width)}║`, className: 'output-success output-border' }
 }
 
 // ── Command dispatcher ─────────────────────────────────────────
 
-export async function executeCommand(cmd, store, termId) {
+export async function executeCommand(cmd, store, termId, options = {}) {
   const input = cmd.trim()
   if (!input) return []
 
@@ -145,7 +226,7 @@ export async function executeCommand(cmd, store, termId) {
     case 'skills':
       return await skillsCommand()
     case 'projects':
-      return await projectsCommand()
+      return await projectsCommand(options)
     case 'resume':
       return await resumeCommand()
     case 'contact':
@@ -161,7 +242,7 @@ export async function executeCommand(cmd, store, termId) {
       store.removeTerminal(termId)
       return []
     case 'open':
-      return await openCommand(args)
+      return await openCommand(args, options)
     case 'sudo':
       return await sudoCommand(args)
     case 'matrix':
@@ -214,7 +295,7 @@ async function aboutCommand() {
   const content = cachedContent || await fetchContent()
   const a = content.about
   const chunkW = BOX_W - 6 // account for side padding + emoji widths
-  const taglineLines = a.tagline.match(new RegExp(`.{1,${chunkW}}(\s|$)`, 'g')) || [a.tagline]
+  const taglineLines = a.tagline.match(new RegExp(`.{1,${chunkW}}(\\s|$)`, 'g')) || [a.tagline]
   return [
     blank(),
     boxTop('About Me'),
@@ -254,40 +335,44 @@ async function skillsCommand() {
   return lines
 }
 
-async function projectsCommand() {
+async function projectsCommand(options = {}) {
   const projects = await fetchProjects()
-  const maxDescW = BOX_W - 8
+  const boxW = getBoxWidth(options.maxColumns)
+  const maxDescW = Math.max(12, boxW - 8)
   const lines = [
     blank(),
-    boxTop('Projects'),
-    boxRow(''),
+    boxTop('Projects', boxW),
+    boxRow('', 'output-text', boxW),
   ]
 
   projects.forEach((p, i) => {
-    lines.push(boxRow(`  [${i + 1}] ${p.title}`, 'output-heading'))
-    const desc = p.description.length > maxDescW ? p.description.slice(0, maxDescW - 3) + '...' : p.description
-    lines.push(boxRow(`      ${desc}`))
+    const titleLines = wrapContentLines(p.title, boxW, `  [${i + 1}] `, '      ')
+    titleLines.forEach(titleLine => lines.push(boxRow(titleLine, 'output-heading', boxW)))
+
+    const desc = truncateToWidth(p.description, maxDescW)
+    lines.push(boxRow(`      ${desc}`, 'output-text', boxW))
+
     const techStr = `Tech: ${p.technologies.join(', ')}`
-    const techChunks = techStr.match(new RegExp(`.{1,${BOX_W - 8}}(\\s|$)`, 'g')) || [techStr]
-    techChunks.forEach(c => lines.push(boxRow(`      ${c.trim()}`, 'output-muted')))
-    if (p.github) lines.push(boxLink(`      GitHub`, p.github))
-    if (p.deployment) lines.push(boxLink(`      Live`, p.deployment))
-    if (p.linkedin) lines.push(boxLink(`      LinkedIn`, p.linkedin))
-    lines.push(boxRow(''))
+    const techLines = wrapContentLines(techStr, boxW, '      ', '      ')
+    techLines.forEach(techLine => lines.push(boxRow(techLine, 'output-muted', boxW)))
+    if (p.github) lines.push(boxLink(`      GitHub`, p.github, boxW))
+    if (p.deployment) lines.push(boxLink(`      Live`, p.deployment, boxW))
+    if (p.linkedin) lines.push(boxLink(`      LinkedIn`, p.linkedin, boxW))
+    lines.push(boxRow('', 'output-text', boxW))
   })
 
-  lines.push(boxBottom())
+  lines.push(boxBottom(boxW))
   lines.push(blank())
-  lines.push(roundBoxTop('How to explore'))
-  lines.push(roundBoxRow('  Type  open <number>  to view'))
-  lines.push(roundBoxRow('  Example:  open 1'))
-  lines.push(roundBoxBottom())
+  lines.push(roundBoxTop('How to explore', boxW))
+  lines.push(roundBoxRow('  Type open <number> to view', boxW))
+  lines.push(roundBoxRow('  Example: open 1', boxW))
+  lines.push(roundBoxBottom(boxW))
   lines.push(blank())
 
   return lines
 }
 
-async function openCommand(args) {
+async function openCommand(args, options = {}) {
   if (!args[0]) {
     return [line('  Usage: open <project-number>', 'output-warning')]
   }
@@ -297,27 +382,25 @@ async function openCommand(args) {
     return [line(`  Project #${args[0]} not found.`, 'output-error')]
   }
   const p = projects[idx]
-  const label = `══ ${p.title} `
-  const padLen = Math.max(0, BOX_W - label.length)
-  const maxW = BOX_W - 4
-  const descChunks = p.description.match(new RegExp(`.{1,${maxW}}(\s|$)`, 'g')) || [p.description]
-  const techStr = p.technologies.join(' · ')
-  const techChunks = techStr.match(new RegExp(`.{1,${maxW}}(\s|$)`, 'g')) || [techStr]
+  const boxW = getBoxWidth(options.maxColumns)
+  const descLines = wrapContentLines(p.description, boxW, '  ', '  ')
+  const techLines = wrapContentLines(p.technologies.join(' · '), boxW, '    ', '    ')
   const lines = [
     blank(),
-    { type: 'text', text: `  ╔${label}${'═'.repeat(padLen)}╗`, className: 'output-accent output-border' },
-    dblBoxRow(''),
-    ...descChunks.map(c => dblBoxRow(`  ${c.trim()}`)),
-    dblBoxRow(''),
-    dblBoxRow('  Technologies:', ' '),
-    ...techChunks.map(c => dblBoxRow(`    ${c.trim()}`)),
-    dblBoxRow(''),
+    dblBoxTop(boxW),
+    ...wrapContentLines(p.title, boxW, '  ', '  ').map(titleLine => dblBoxRow(titleLine, ' ', boxW)),
+    dblBoxRow('', ' ', boxW),
+    ...descLines.map(descLine => dblBoxRow(descLine, ' ', boxW)),
+    dblBoxRow('', ' ', boxW),
+    dblBoxRow('  Technologies:', ' ', boxW),
+    ...techLines.map(techLine => dblBoxRow(techLine, ' ', boxW)),
+    dblBoxRow('', ' ', boxW),
   ]
-  if (p.github) lines.push(dblBoxRow(`  >> GitHub`))
-  if (p.deployment) lines.push(dblBoxRow(`  >> Live`))
-  if (p.linkedin) lines.push(dblBoxRow(`  >> LinkedIn`))
-  if (p.github || p.deployment || p.linkedin) lines.push(dblBoxRow(''))
-  lines.push(dblBoxBottom())
+  if (p.github) lines.push(dblBoxRow('  >> GitHub', ' ', boxW))
+  if (p.deployment) lines.push(dblBoxRow('  >> Live', ' ', boxW))
+  if (p.linkedin) lines.push(dblBoxRow('  >> LinkedIn', ' ', boxW))
+  if (p.github || p.deployment || p.linkedin) lines.push(dblBoxRow('', ' ', boxW))
+  lines.push(dblBoxBottom(boxW))
   lines.push(blank())
   return lines
 }

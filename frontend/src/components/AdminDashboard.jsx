@@ -5,6 +5,7 @@ import config from '../config'
 
 export default function AdminDashboard({ token, onLogout }) {
   const [projects, setProjects] = useState([])
+  const [reorderingProjectId, setReorderingProjectId] = useState(null)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ title: '', description: '', technologies: '', github: '', deployment: '', linkedin: '', image: '' })
   const [showForm, setShowForm] = useState(false)
@@ -19,7 +20,7 @@ export default function AdminDashboard({ token, onLogout }) {
 
   // Site Content state
   const [content, setContent] = useState(null)
-  const [contentSaving, setContentSaving] = useState(false)
+  const [savingSection, setSavingSection] = useState(null)
   const [activeTab, setActiveTab] = useState('projects')
 
   const api = axios.create({
@@ -125,6 +126,32 @@ export default function AdminDashboard({ token, onLogout }) {
     }
   }
 
+  const handleReorderProject = async (index, direction) => {
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= projects.length) return
+
+    const previousProjects = projects
+    const reorderedProjects = [...projects]
+    const [movedProject] = reorderedProjects.splice(index, 1)
+    reorderedProjects.splice(targetIndex, 0, movedProject)
+
+    setProjects(reorderedProjects)
+    setReorderingProjectId(movedProject._id)
+
+    try {
+      const res = await api.patch('/api/projects/reorder', {
+        orderedIds: reorderedProjects.map((project) => project._id),
+      })
+      setProjects(res.data)
+      flash('✓ Project order updated')
+    } catch (err) {
+      setProjects(previousProjects)
+      flash('Error: ' + (err.response?.data?.message || 'Failed to reorder projects'))
+    }
+
+    setReorderingProjectId(null)
+  }
+
   // ── ASCII upload ───────────────────────────────────
 
   const handleAsciiUpload = async () => {
@@ -185,15 +212,16 @@ export default function AdminDashboard({ token, onLogout }) {
     }))
   }
 
-  const saveContent = async () => {
-    setContentSaving(true)
+  const saveContentSection = async (sectionKey, data, successMessage) => {
+    setSavingSection(sectionKey)
     try {
-      await api.put('/api/content', content)
-      flash('✓ Site content saved!')
+      const res = await api.put('/api/content', data)
+      setContent(prev => ({ ...prev, ...res.data.content }))
+      flash(successMessage)
     } catch (err) {
       flash('Error: ' + (err.response?.data?.message || 'Save failed'))
     }
-    setContentSaving(false)
+    setSavingSection(null)
   }
 
   // ── Label helper ───────────────────────────────────
@@ -201,6 +229,17 @@ export default function AdminDashboard({ token, onLogout }) {
     <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>
       {children}
     </label>
+  )
+
+  const SectionSaveButton = ({ sectionKey, children, onClick }) => (
+    <button
+      className="admin-btn success"
+      onClick={onClick}
+      disabled={savingSection === sectionKey}
+      style={{ marginTop: 16, opacity: savingSection === sectionKey ? 0.5 : 1 }}
+    >
+      {savingSection === sectionKey ? '⟳ Saving...' : children}
+    </button>
   )
 
   // ── Render ─────────────────────────────────────────
@@ -357,6 +396,7 @@ export default function AdminDashboard({ token, onLogout }) {
                         <th>Title</th>
                         <th>Technologies</th>
                         <th>Links</th>
+                        <th>Order</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -374,6 +414,28 @@ export default function AdminDashboard({ token, onLogout }) {
                               {p.github && <a href={p.github} target="_blank" rel="noopener" style={{ color: 'var(--accent-cyan)' }}>GitHub</a>}
                               {p.deployment && <a href={p.deployment} target="_blank" rel="noopener" style={{ color: 'var(--accent-green)' }}>Live</a>}
                               {p.linkedin && <a href={p.linkedin} target="_blank" rel="noopener" style={{ color: 'var(--accent-purple)' }}>LinkedIn</a>}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                className="admin-btn"
+                                style={{ padding: '4px 10px', fontSize: 12, opacity: i === 0 || reorderingProjectId === p._id ? 0.5 : 1 }}
+                                onClick={() => handleReorderProject(i, -1)}
+                                disabled={i === 0 || reorderingProjectId === p._id}
+                                title="Move up"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                className="admin-btn"
+                                style={{ padding: '4px 10px', fontSize: 12, opacity: i === projects.length - 1 || reorderingProjectId === p._id ? 0.5 : 1 }}
+                                onClick={() => handleReorderProject(i, 1)}
+                                disabled={i === projects.length - 1 || reorderingProjectId === p._id}
+                                title="Move down"
+                              >
+                                ↓
+                              </button>
                             </div>
                           </td>
                           <td>
@@ -426,6 +488,12 @@ export default function AdminDashboard({ token, onLogout }) {
                   <input className="admin-input" value={content.about.focus} onChange={e => updateContent('about.focus', e.target.value)} />
                 </div>
               </div>
+              <SectionSaveButton
+                sectionKey="about"
+                onClick={() => saveContentSection('about', { about: content.about }, '✓ About section saved!')}
+              >
+                ✓ Save About
+              </SectionSaveButton>
             </div>
 
             {/* Skills Section */}
@@ -451,6 +519,12 @@ export default function AdminDashboard({ token, onLogout }) {
                   <button className="admin-btn danger" style={{ padding: '6px 10px', fontSize: 12, marginBottom: 2 }} onClick={() => removeSkill(idx)}>✕</button>
                 </div>
               ))}
+              <SectionSaveButton
+                sectionKey="skills"
+                onClick={() => saveContentSection('skills', { skills: content.skills }, '✓ Skills saved!')}
+              >
+                ✓ Save Skills
+              </SectionSaveButton>
             </div>
 
             {/* Contact Section */}
@@ -472,6 +546,12 @@ export default function AdminDashboard({ token, onLogout }) {
                   <input className="admin-input" value={content.contact.linkedin} onChange={e => updateContent('contact.linkedin', e.target.value)} />
                 </div>
               </div>
+              <SectionSaveButton
+                sectionKey="contact"
+                onClick={() => saveContentSection('contact', { contact: content.contact }, '✓ Contact details saved!')}
+              >
+                ✓ Save Contact
+              </SectionSaveButton>
             </div>
 
             {/* Links Section */}
@@ -493,6 +573,16 @@ export default function AdminDashboard({ token, onLogout }) {
                   <input className="admin-input" value={content.resumeLinkedIn} onChange={e => updateContent('resumeLinkedIn', e.target.value)} />
                 </div>
               </div>
+              <SectionSaveButton
+                sectionKey="links"
+                onClick={() => saveContentSection('links', {
+                  coffeeUrl: content.coffeeUrl,
+                  resumeUrl: content.resumeUrl,
+                  resumeLinkedIn: content.resumeLinkedIn,
+                }, '✓ Links saved!')}
+              >
+                ✓ Save Links
+              </SectionSaveButton>
             </div>
 
             {/* Hobbies Section */}
@@ -523,6 +613,12 @@ export default function AdminDashboard({ token, onLogout }) {
                   }}>✕</button>
                 </div>
               ))}
+              <SectionSaveButton
+                sectionKey="hobbies"
+                onClick={() => saveContentSection('hobbies', { hobbies: content.hobbies || [] }, '✓ Hobbies saved!')}
+              >
+                ✓ Save Hobbies
+              </SectionSaveButton>
             </div>
 
             {/* Easter Eggs Section */}
@@ -629,17 +725,17 @@ export default function AdminDashboard({ token, onLogout }) {
                 <input className="admin-input" value={content.rickrollUrl || ''} onChange={e => updateContent('rickrollUrl', e.target.value)} placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" />
                 <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4 }}>YouTube link user gets redirected to on sudo rm -rf /</p>
               </div>
+              <SectionSaveButton
+                sectionKey="easter-eggs"
+                onClick={() => saveContentSection('easter-eggs', {
+                  musicUrl: content.musicUrl || '',
+                  hireMessage: content.hireMessage || '',
+                  rickrollUrl: content.rickrollUrl || '',
+                }, '✓ Easter eggs saved!')}
+              >
+                ✓ Save Easter Eggs
+              </SectionSaveButton>
             </div>
-
-            {/* Save Button */}
-            <button
-              className="admin-btn success"
-              onClick={saveContent}
-              disabled={contentSaving}
-              style={{ width: '100%', justifyContent: 'center', padding: '14px 20px', fontSize: 14, opacity: contentSaving ? 0.5 : 1 }}
-            >
-              {contentSaving ? '⟳ Saving...' : '✓ Save All Content'}
-            </button>
           </>
         )}
 

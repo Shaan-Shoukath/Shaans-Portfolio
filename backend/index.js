@@ -8,6 +8,7 @@ import profileRoutes from './routes/profile.js'
 import contentRoutes from './routes/content.js'
 
 dotenv.config()
+mongoose.set('bufferCommands', false)
 
 const app = express()
 const PORT = process.env.PORT || 5000

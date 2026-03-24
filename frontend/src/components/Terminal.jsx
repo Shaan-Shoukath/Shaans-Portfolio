@@ -7,9 +7,11 @@ import Neofetch from './Neofetch'
 // Track which action items have already been executed so we don't re-run on re-render
 const executedActions = new Set()
 let actionCounter = 0
+const DEFAULT_TERMINAL_COLUMNS = 48
 
 export default function Terminal({ terminal }) {
   const [input, setInput] = useState('')
+  const [terminalColumns, setTerminalColumns] = useState(DEFAULT_TERMINAL_COLUMNS)
   const inputRef = useRef(null)
   const bodyRef = useRef(null)
   const store = useTerminalStore()
@@ -29,6 +31,36 @@ export default function Terminal({ terminal }) {
     }
   }, [isFocused])
 
+  useEffect(() => {
+    const body = bodyRef.current
+    if (!body) return
+
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+
+    const measureColumns = () => {
+      const styles = window.getComputedStyle(body)
+      const paddingX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight)
+      const availableWidth = Math.max(0, body.clientWidth - paddingX)
+      const font = `${styles.fontStyle} ${styles.fontVariant} ${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`
+
+      if (context) {
+        context.font = font
+      }
+
+      const charWidth = context?.measureText('M').width || parseFloat(styles.fontSize) * 0.65
+      const columns = Math.max(26, Math.floor(availableWidth / charWidth))
+      setTerminalColumns(columns)
+    }
+
+    measureColumns()
+
+    const observer = new ResizeObserver(measureColumns)
+    observer.observe(body)
+
+    return () => observer.disconnect()
+  }, [])
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
     const cmd = input.trim()
@@ -40,7 +72,7 @@ export default function Terminal({ terminal }) {
 
     if (cmd) {
       store.addCommandToHistory(terminal.id, cmd)
-      const output = await executeCommand(cmd, store, terminal.id)
+      const output = await executeCommand(cmd, store, terminal.id, { maxColumns: terminalColumns })
       // Tag action items with unique IDs so we can track execution
       const taggedOutput = output.map(item => {
         if (item && (item.type === 'action' || item.type === 'audio')) {
@@ -54,7 +86,7 @@ export default function Terminal({ terminal }) {
     }
 
     setInput('')
-  }, [input, terminal.id, store])
+  }, [input, terminal.id, store, terminalColumns])
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'ArrowUp') {
